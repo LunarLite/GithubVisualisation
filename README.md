@@ -12,7 +12,7 @@ This visualisation shows important data concerning a chosen Github repository, s
 ### Usage
 
 The user can enter a search query which gets run through the Github API and returns matching repositories.
-These repositories get listed in the SVG. (picture)
+These repositories get listed in the SVG. ![search results](https://github.com/LunarLite/GithubVisualisation/blob/master/Sketches/Screen_search_result.png?raw=true)
 
 The user can then click any of these listed repositories to move on with the visualisation.
 The visualisation will show the overal structure of the repository by default (picture).
@@ -22,5 +22,3 @@ If the user wants to switch back, there is a similar button dubbed "structure".
 
 Underneath the SVG there will be a horizontal slider, 
 allowing the user to view the data at any point of time during the repositories history.
-
-### Pictures
