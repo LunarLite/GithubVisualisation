@@ -44,3 +44,20 @@ For now, the type of chart is unsure.
 
 Underneath the SVG there will be a horizontal slider. This slider will dictate which moment of the repositories history you are watching,
 allowing the user to view actual changes and growth over time.
+
+### Interactive components
+
+An input box above the SVG will allow the user to query a search for different repositories.
+
+There's a slider underneath the SVG at all times, this slider dictates a moment in the history of a chosen repository.
+The view relates to that chosen time.
+
+In the "growth analysis" screen, hovering over any chart will cause highlights with additional data to appear on all charts.
+
+There's a button on the top right of both the "growth analysis" and "structure" screen, allowing you to switch between the two.
+
+### External components / Data sources
+
+The GithubV3 API will provide all data neccesary.
+The d3-tip library *might* be used.
+
