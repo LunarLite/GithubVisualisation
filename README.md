@@ -18,6 +18,8 @@ Hence this visualisation!
 The visualisation will show the addition of files/code/commits at a certain time of choice (during the repositories life-span).
 Additionally some sort of analysis will be made of the code frequency and commit data, allowing for another chart.
 
+The visualisation will also make use of the Github v3 API.
+
 ### Usage
 
 The user can enter a search query which gets run through the Github API and returns matching repositories.
