@@ -6,7 +6,7 @@ This visualisation shows important data concerning a chosen Github repository, s
 * Commits
   * Using a barchart
 * Code additions/removals
-  * Using a shaded line chart (?)
+  * Using a shaded line chart
 * Actual growth analysis
   * Using x chart (undecided)
 
