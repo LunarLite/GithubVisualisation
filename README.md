@@ -59,5 +59,6 @@ There's a button on the top right of both the "growth analysis" and "structure" 
 ### External components / Data sources
 
 The GithubV3 API will provide all data neccesary.
+
 The d3-tip library *might* be used.
 
