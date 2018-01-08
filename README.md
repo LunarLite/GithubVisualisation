@@ -30,5 +30,5 @@ A third chart will likely be added, forming a combination of the data from the o
 For now, the type of chart is unsure.
 ![growth analysis addition](https://github.com/LunarLite/GithubVisualisation/blob/master/Sketches/Screen_growth_analysis_addition.png?raw=true)
 
-Underneath the SVG there will be a horizontal slider. This slider will dictate which momen of the repositories history you are watching,
+Underneath the SVG there will be a horizontal slider. This slider will dictate which moment of the repositories history you are watching,
 allowing the user to view actual changes and growth over time.
