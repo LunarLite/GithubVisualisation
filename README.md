@@ -58,9 +58,9 @@ There's a button on the top right of both the "growth analysis" and "structure" 
 
 ### External components / Data sources
 
-The GithubV3 API will provide all data neccesary.
-![Github API](https://developer.github.com/v3/)
-![Github API statistic documentation](https://developer.github.com/v3/repos/statistics/)
+The GithubV3 API will provide all data neccesary.  
+![Github API](https://developer.github.com/v3/)  
+![Github API statistic documentation](https://developer.github.com/v3/repos/statistics/)  
 
 The d3-tip library *might* be used.
 
