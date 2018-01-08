@@ -38,7 +38,7 @@ If the user wants to switch back, there is a similar button dubbed "structure".
 The second screen (growth analysis), will feature two basic charts showing the amount of commits per week and the addition/removal of code per week.
 ![growth analysis](https://github.com/LunarLite/GithubVisualisation/blob/master/Sketches/Screen_growth_analysis.png?raw=true)
 
-A third chart will likely be added, forming a combination of the data from the other two and representing actual growth.
+A third chart will be added, forming a combination of the data from the other two and representing actual growth.
 For now, the type of chart is unsure.
 ![growth analysis addition](https://github.com/LunarLite/GithubVisualisation/blob/master/Sketches/Screen_growth_analysis_addition.png?raw=true)
 
