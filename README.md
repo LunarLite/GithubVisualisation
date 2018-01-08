@@ -12,12 +12,14 @@ This visualisation shows important data concerning a chosen Github repository, s
 
 ### Problem/Solution
 
-There is currently not a clear analytical tool or overview/visualisation of a repositories growth.
-Hence this visualisation!
+There is currently not a clear analytical tool or overview/visualisation of the growth of a repository.
+This can be an issue for manaement/group projects, where it's unsure how a project/repository is progressing.
+
+A visualisation would help in this case, because hard data (code, commits, etc.) may be hard to keep track of over a certain period of time. 
+Additionally, no clear conclusions can be made without having a clear overview, which a visualisation can provide.
 
 The visualisation will show the addition of files/code/commits at a certain time of choice (during the repositories life-span).
 Additionally some sort of analysis will be made of the code frequency and commit data, allowing for another chart.
-
 The visualisation will also make use of the Github v3 API.
 
 ### Usage
