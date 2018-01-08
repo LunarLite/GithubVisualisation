@@ -52,7 +52,8 @@ An input box above the SVG will allow the user to query a search for different r
 There's a slider underneath the SVG at all times, this slider dictates a moment in the history of a chosen repository.
 The view relates to that chosen time.
 
-In the "growth analysis" screen, hovering over any chart will cause highlights with additional data to appear on all charts.
+In the "growth analysis" screen, hovering over any chart will cause highlights with additional data to appear on all charts.  
+In the "structure" screen, hovering over a node will show it's file type, size, and creation/last update dates.
 
 There's a button on the top right of both the "growth analysis" and "structure" screen, allowing you to switch between the two.
 
