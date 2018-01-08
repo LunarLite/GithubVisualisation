@@ -10,6 +10,14 @@ This visualisation shows important data concerning a chosen Github repository, s
 * Actual growth analysis
   * Using x chart (undecided)
 
+### Problem/Solution
+
+There is currently not a clear analytical tool or overview/visualisation of a repositories growth.
+Hence this visualisation!
+
+The visualisation will show the addition of files/code/commits at a certain time of choice (during the repositories life-span).
+Additionally some sort of analysis will be made of the code frequency and commit data, allowing for another chart.
+
 ### Usage
 
 The user can enter a search query which gets run through the Github API and returns matching repositories.
