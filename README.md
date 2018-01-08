@@ -7,7 +7,8 @@ This visualisation shows important data concerning a chosen Github repository, s
   * Using a barchart
 * Code additions/removals
   * Using a shaded line chart (?)
-* More?
+* Actual growth analysis
+  * Using x chart (undecided)
 
 ### Usage
 
