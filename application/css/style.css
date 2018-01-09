@@ -1,0 +1,31 @@
+.parentSvg{
+	border: 3px dotted;
+	border-color: blueviolet;
+}
+
+input[type=text] {
+    width: 200px;	
+	padding: 6px;
+	margin-right: 16px;
+	font-size: 17px;
+}
+
+.search-container{
+	border: 3px dotted;
+	border-color: violet;
+	width: 960px;
+}
+
+.search-container button {
+  padding: 6px;
+  margin-top: 8px;
+  margin-right: 16px;
+  background: #ddd;
+  font-size: 17px;
+  border: none;
+  cursor: pointer;
+}
+
+.search-container button:hover {
+  background: #ccc;
+}
