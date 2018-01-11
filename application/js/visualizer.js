@@ -68,8 +68,14 @@ function search_results(data_results)
 			.attr('x', svgWidth / 80)
 			.attr('y', svgHeight / 15)
 			.text("Results:");
-	parentSvg.selectAll("image").remove();
+	parentSvg.selectAll("image").transition()
+			.duration(500)
+			.style('opacity', 0)
+			.attr('x', (svgWidth / 80) * 70)
+			.duration(500)
+			.remove();
 		
+	console.log("test");
 	var results = parentSvg.selectAll(".resultText")
 		.data(data_results)
 		.enter()
