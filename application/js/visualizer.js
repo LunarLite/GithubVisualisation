@@ -57,6 +57,11 @@ function search_repository()
 
 function search_results(data_results)
 {	
+	if(!data_results)
+	{
+		console.log("Ratelimited by api, or any other error.");
+		return;
+	}
 	if(data_results.length > max_results)
 	{
 		data_results = data_results.slice(0, max_results);
@@ -79,6 +84,7 @@ function search_results(data_results)
 		.data(data_results)
 		.enter()
 		.append("text")
+			.style('opacity', 0)
 			.classed("resultText", true)
 			.text(function(d, i)
 			{
@@ -86,6 +92,9 @@ function search_results(data_results)
 			})
 			.attr("x",  10)
 			.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75});
+			.transition()
+				.duration(500)
+				.style('opacity', 1)
 }
 
 
