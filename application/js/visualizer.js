@@ -80,21 +80,33 @@ function search_results(data_results)
 			.duration(500)
 			.remove();
 		
-	var results = parentSvg.selectAll(".resultText")
-		.data(data_results)
-		.enter()
-		.append("text")
-			.style('opacity', 0)
-			.classed("resultText", true)
-			.text(function(d, i)
-			{
-				return (i+1) + ". " + d.owner.login + "/" + d.name + "		" + d.pushed_at;
-			})
-			.attr("x",  10)
-			.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75})
-			.transition()
-				.duration(500)
-				.style('opacity', 1);
+	parentSvg.selectAll(".resultText").transition()
+		.duration(500)
+		.style('opacity', 0)
+		.duration(500)
+		.remove();
+
+	var delayInMilliseconds = 500; //1 second
+
+	setTimeout(function() {
+		  var results = parentSvg.selectAll(".resultText")
+			.data(data_results)
+			.enter()
+			.append("text")
+				.style('opacity', 0)
+				.classed("resultText", true)
+				.text(function(d, i)
+				{
+					return (i+1) + ". " + d.owner.login + "/" + d.name + "		" + d.pushed_at;
+				})
+				.attr("x",  10)
+				.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75})
+				.transition()
+					.duration(500)
+					.style('opacity', 1);
+	}, delayInMilliseconds);
+	
+	
 }
 
 
