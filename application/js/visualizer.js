@@ -75,7 +75,6 @@ function search_results(data_results)
 			.duration(500)
 			.remove();
 		
-	console.log("test");
 	var results = parentSvg.selectAll(".resultText")
 		.data(data_results)
 		.enter()
