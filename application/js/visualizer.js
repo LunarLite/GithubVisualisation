@@ -3,6 +3,7 @@ var max_results = 10;
 var delayInMilliseconds = 100; //0.1 second
 var svgWidth = 960;
 var svgHeight = 500;
+var imageSize = 256;
 // SVG main objects
 var parentSvg, svgTitle;
 
@@ -10,9 +11,6 @@ var parentSvg, svgTitle;
 function init_visualisation()
 {
 	// Setup the base svg
-
-	var imageSize = 256;
-	 
 	parentSvg = d3.select('body').append('svg')
 		.attr('width', svgWidth)
 		.attr('height', svgHeight)
@@ -52,44 +50,33 @@ function search_repository()
 	{	
 		// Start search
 		console.log("Searching for: " + query);
-		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=stars&order=desc').then(r => r.json()).then(j => search_results(j.items))
+		parentSvg.selectAll(".resultText").transition()
+			.duration(500)
+			.style('opacity', 0)
+			.duration(500)
+			.remove();
+		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=stars&order=desc').then(r => r.json()).then(j => search_results(j.items, query))
 	}	
 }
 
-function search_results(data_results)
+function search_results(data_results, query)
 {	
+	// Ratelimit/error
 	if(!data_results)
 	{
-		console.log("Ratelimited by api, or any other error.");
+		change_title("Ratelimited by api, or any other error.");
+		shift_image_in();
 		return;
 	}
+	// Too many results
 	if(data_results.length > max_results)
 	{
 		data_results = data_results.slice(0, max_results);
-	}
-	console.log(data_results);
+	}	
 	
-	svgTitle
-		.transition()
-			.attr('x', svgWidth / 80)
-			.attr('y', svgHeight / 15)
-			.text("Results:");
-	parentSvg.selectAll("image").transition()
-			.duration(500)
-			.style('opacity', 0)
-			.attr('x', (svgWidth / 80) * 70)
-			.duration(500)
-			.remove();
-		
-	parentSvg.selectAll(".resultText").transition()
-		.duration(500)
-		.style('opacity', 0)
-		.duration(500)
-		.remove();
+	change_title("Results for: \"" + query + "\"");
+	shift_image_out();
 
-
-
-	setTimeout(function() {
 		  var results = parentSvg.selectAll(".resultText")
 			.data(data_results)
 			.enter()
@@ -108,8 +95,33 @@ function search_results(data_results)
 						return i * 100;
 					})
 					.style('opacity', 1);
-	}, delayInMilliseconds);
 }
 
+function change_title(text)
+{
+	svgTitle
+		.transition()
+			.duration(500)
+			.attr('x', svgWidth / 80)
+			.attr('y', svgHeight / 15)
+			.text(text);
+	
+}
 
+function shift_image_out()
+{
+		parentSvg.selectAll("image").transition()
+			.duration(500)
+			.style('opacity', 0)
+			.attr('x', (svgWidth / 80) * 70)
+			.duration(500);
+}
 
+function shift_image_in()
+{
+		parentSvg.selectAll("image").transition()
+			.duration(500)
+			.style('opacity', 1)
+			.attr('x', (svgWidth / 2 - imageSize/2))
+			.duration(500);
+}
