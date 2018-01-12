@@ -39,7 +39,7 @@ function structure_visualisation()
 	  .enter()
 	  .append("rect")
 		.attr("id", function(d) { return d; })
-		.text(d);
+		.text(function(d) { return d.full_name; });
 }
 
 function growth_visualisation()
@@ -69,7 +69,7 @@ function search_repository()
 		// Get results
 		setTimeout(function () 
 		{
-			fetch('https://api.github.com/search/repositories?q=' + query + '&sort=stars&order=desc').then(r => r.json()).then(j => search_results(j.items, query))
+			fetch('https://api.github.com/search/repositories?q=' + query + '&sort=name&order=desc').then(r => r.json()).then(j => search_results(j.items, query))
 		}, 200);
 	}	
 }
@@ -79,6 +79,7 @@ function search_results(data_results, query)
 	// Ratelimit/error
 	if(!data_results)
 	{
+		wipe_screen();
 		change_title(titleStandardX, "Hit the Github API ratelimit!");
 		shift_image_in();
 		return;
@@ -133,7 +134,7 @@ function add_results(data_results)
 	}).attr("x", 350)	
 	results.append("tspan").style("fill", "black").text(function(d, i)
 	{
-		return d.pushed_at;
+		return d.created_at;
 	}).attr("x", 450)
 	
 	
@@ -219,8 +220,7 @@ function shift_image_out()
 		parentSvg.selectAll(".init_image").transition()
 			.duration(500)
 			.style('opacity', 0)
-			.attr('x', (svgWidth / 80) * 70)
-			.duration(500);
+			.attr('x', (svgWidth / 80) * 70);
 }
 
 function shift_image_in()
@@ -228,6 +228,5 @@ function shift_image_in()
 		parentSvg.selectAll(".init_image").transition()
 			.duration(500)
 			.style('opacity', 1)
-			.attr('x', (svgWidth / 2 - imageSize/2))
-			.duration(500);
+			.attr('x', (svgWidth / 2 - imageSize/2));
 }
