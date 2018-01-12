@@ -4,6 +4,8 @@ var delayInMilliseconds = 100; //0.1 second
 var svgWidth = 960;
 var svgHeight = 500;
 var imageSize = 256;
+var titleStandardX = svgWidth / 2.8;
+var titleLeftX =  svgWidth / 80;
 // SVG main objects
 var parentSvg, svgTitle;
 
@@ -48,13 +50,13 @@ function search_repository()
 	}
 	else
 	{	
-		// Start search
-		console.log("Searching for: " + query);
+		// Start search by removing previous results
 		parentSvg.selectAll(".resultText").transition()
 			.duration(500)
 			.style('opacity', 0)
 			.duration(500)
 			.remove();
+		// Get results
 		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=stars&order=desc').then(r => r.json()).then(j => search_results(j.items, query))
 	}	
 }
@@ -64,7 +66,7 @@ function search_results(data_results, query)
 	// Ratelimit/error
 	if(!data_results)
 	{
-		change_title("Ratelimited by api, or any other error.");
+		change_title(titleStandardX, "Hit the Github API ratelimit!");
 		shift_image_in();
 		return;
 	}
@@ -74,7 +76,7 @@ function search_results(data_results, query)
 		data_results = data_results.slice(0, max_results);
 	}	
 	
-	change_title("Results for: \"" + query + "\"");
+	change_title(titleLeftX, "Results for: \"" + query + "\"");
 	shift_image_out();
 
 		  var results = parentSvg.selectAll(".resultText")
@@ -97,15 +99,13 @@ function search_results(data_results, query)
 					.style('opacity', 1);
 }
 
-function change_title(text)
+function change_title(x, text)
 {
 	svgTitle
 		.transition()
 			.duration(500)
-			.attr('x', svgWidth / 80)
-			.attr('y', svgHeight / 15)
+			.attr('x', x)
 			.text(text);
-	
 }
 
 function shift_image_out()
