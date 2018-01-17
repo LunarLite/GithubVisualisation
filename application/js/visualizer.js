@@ -11,7 +11,13 @@ var titleRightX = (svgWidth / 80) * 60;
 var parentSvg, svgTitle, initImage;
 // Visualisation data
 var repositoryData;
-	
+// Growth analysis data
+var commitData;
+var codeFrequencyData;
+// Codeflower data
+var repositoryStateData;
+
+// Initialize basic view
 function init_visualisation()
 {
 	// Setup the base svg
@@ -22,36 +28,61 @@ function init_visualisation()
 		
 	parentSvg = d3.select('.parentSvg');
 	
-	wipe_screen();
-	svgTitle.text("Search for a repository!");
-	initImage.style('opacity', 1);
+	wipe_screen(function() 
+	{
+		svgTitle.text("Search for a repository!");
+		initImage.style('opacity', 1);
+	});
 }
 
+// Wipe and start structure view
 function structure_visualisation()
-{
-	wipe_screen();
-	console.log(repositoryData);
-	change_title(titleLeftX, "Structure view of: " + repositoryData.name);
+{	
+	wipe_screen(function()
+	{
+		change_title(titleLeftX, "Structure view of: " + repositoryData.name);
 	
 	
-	parentSvg.selectAll("rect")
-	  .data(["Switch view"])
-	  .enter()
-	  .append("rect")
-		.attr("id", function(d) { return d; })
-		.text(function(d) { return d.full_name; });
+		var switchButton = parentSvg.append('svg:image')
+			.classed("switchButton", true)
+			.attr("x", (svgWidth / 10) * 8.5)
+			.attr("y", svgHeight / 200)
+			.attr("width", imageSize / 2)
+			.attr("height", imageSize / 2)
+			.attr("xlink:href", "images/template_button.png")
+			.on("click", function(d,i)
+			{
+				growth_visualisation();
+			})	
+	
+	});
+
 }
 
+// Wipe and start growth view
 function growth_visualisation()
-{
-	wipe_screen();
-	console.log(repositoryData);
-	change_title(titleLeftX, "Growth analysis of: " + repositoryData.name);
+{	
+	wipe_screen(function()
+	{
+		change_title(titleLeftX, "Growth analysis of: " + repositoryData.name);
+		
+		
+		var switchButton = parentSvg.append('svg:image')
+			.classed("switchButton", true)
+			.attr("x", (svgWidth / 10) * 8.5)
+			.attr("y", svgHeight / 200)
+			.attr("width", imageSize / 2)
+			.attr("height", imageSize / 2)
+			.attr("xlink:href", "images/template_button.png")
+			.on("click", function(d,i)
+			{
+				structure_visualisation();
+			})	
+	});
+	
 }
 
-
-
-
+// Triggered by clicking `search` button, fetches GH API data, sends it to #search_results()
 function search_repository()
 {
 	var query = document.getElementById('searchQuery').value;
@@ -64,24 +95,23 @@ function search_repository()
 	}
 	else
 	{	
-		// Start search by removing previous results
-		wipe_screen();
 		// Get results
-		setTimeout(function () 
-		{
-			fetch('https://api.github.com/search/repositories?q=' + query + '&sort=name&order=desc').then(r => r.json()).then(j => search_results(j.items, query))
-		}, 200);
+		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=name&order=desc').then(r => r.json()).then(j => search_results(j.items, query));
 	}	
 }
 
+// Checks if valid data, returns ratelimit if not valid. Shortens amount of results to a maximum of 10.
+// Changes title accordingly and shifts away image.
 function search_results(data_results, query)
 {	
 	// Ratelimit/error
 	if(!data_results)
 	{
-		wipe_screen();
-		change_title(titleStandardX, "Hit the Github API ratelimit!");
-		shift_image_in();
+		wipe_screen(function()
+		{
+			change_title(titleStandardX, "Hit the Github API ratelimit!");
+			shift_image_in();
+		});
 		return;
 	}
 	// Too many results
@@ -90,100 +120,96 @@ function search_results(data_results, query)
 		data_results = data_results.slice(0, max_results);
 	}	
 	
-	change_title(titleLeftX, "Results for: \"" + query + "\"");
-	shift_image_out();
-
-	add_results(data_results);
-	add_buttons(data_results);
-
+	wipe_screen(function()
+	{
+		// Shift&Change main components
+		change_title(titleLeftX, "Results for: \"" + query + "\"");
+		shift_image_out();
+		// Add&Update buttons and results.
+		add_results(data_results);
+	});
 }
 
+// Add/Update search results
 function add_results(data_results)
 {
-	// Initialize texts and make invisible
+	// Add results
 	var results = parentSvg.selectAll(".resultText")
-		.data(data_results)
-		.enter()
+		.data(data_results);
+	results.enter()
 		.append("text")
-			.style('opacity', 0)
-			.classed("resultText", true);
-	
-	// Add proper text for each result
+		.attr("x",  10)
+		.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75})
+		.classed("resultText", true);
+	// Remove previous textual descriptions
+	results.selectAll("tspan").remove();
+	// Textual descriptions
 	results.append("tspan").text(function(d, i)
-		{
+	{
 			return (i+1) + ". ";
 		});
 	results.append("tspan").style("fill", "green").text(function(d, i)
-		{
+	{
 			return d.owner.login + "/";
 		});
 	results.append("tspan").style("fill", "black").text(function(d, i)
-		{
+	{
 			return d.name;
-		});
-	
-	// Set default position
-	results
-		.attr("x",  10)
-		.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75});
-		
-	// Add tabbed text
+		});	
 	results.append("tspan").style("fill", "black").text(function(d, i)
 	{
 		return (d.size/1000) + "MB";
-	}).attr("x", 350)	
+	}).attr("x", 350);
 	results.append("tspan").style("fill", "black").text(function(d, i)
 	{
 		return d.created_at;
-	}).attr("x", 450)
+	}).attr("x", 450);
+	// Remove excess results based on data
+	results.exit().remove();
 	
-	
-	// Make visible
-	results
-		.transition()
-			.duration(function(d, i)
-			{
-				return i * 100;
-			})
-			.style('opacity', 1);
-}
-
-function add_buttons(data_results)
-{
-	var results = parentSvg.selectAll(".resultButton")
-		.data(data_results)
+	// Add buttons
+	var resultButtons = parentSvg.selectAll(".resultButton")
+		.data(data_results);
+	resultButtons
 		.enter()
 		.append('svg:image')
-			.style('opacity', 0)
 			.classed("resultButton", true)
 			.attr("x", (svgWidth / 10) * 8)
 			.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 52})
 			.attr("width", imageSize / 7.5)
 			.attr("height", imageSize / 7.5)
-			.attr({
-				'xlink:href': 'images/go_icon.png'
-			})
+			.attr("xlink:href", "images/go_icon.png")
 			.on("click", function(d,i)
 			{
 				repositoryData = d;
-				structure_visualisation();
-			})
-			.transition()
-				.duration(function(d, i)
-				{
-					return i * 100;
-				})
-				.style('opacity', 1);
-
-
+				setData();
+				growth_visualisation();
+			})	
+			
+	// Remove excess buttons based on data
+	resultButtons.exit().remove();
+	
+	// Fade results in neatly
+	results
+	.style('opacity', 0)
+	.transition()
+		.duration(function(d,i){return i * 150})
+		.style('opacity', 1);
+	resultButtons
+	.style('opacity', 0)
+	.transition()
+		.duration(function(d,i){return i * 150})
+		.style('opacity', 1);
+	
 }
 
-function wipe_screen()
+// Wipe the entire screen and initialize base components. (Title/Image)
+function wipe_screen(callback)
 {
 	parentSvg.selectAll("*")
 		.transition()
 			.duration(500)
-			.style('opacity', 0)
+			.style('opacity', 0)	
 			.duration(500)
 			.remove();
 			
@@ -204,15 +230,18 @@ function wipe_screen()
 			width: imageSize,
 			height: imageSize
 		});
+	callback();
 }
 
+// Control (base) components
 function change_title(x, text)
 {
 	svgTitle
 		.transition()
 			.duration(500)
 			.attr('x', x)
-			.text(text);
+			.text(text)
+			.style('opacity', 1);
 }
 
 function shift_image_out()
@@ -225,8 +254,19 @@ function shift_image_out()
 
 function shift_image_in()
 {
-		parentSvg.selectAll(".init_image").transition()
-			.duration(500)
-			.style('opacity', 1)
-			.attr('x', (svgWidth / 2 - imageSize/2));
+	parentSvg.selectAll(".init_image").transition()
+		.duration(500)
+		.style('opacity', 1)
+		.attr('x', (svgWidth / 2 - imageSize/2));
+}
+
+const setData = async () => {
+	// Set weekly commit data from last year
+    const commitResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/participation');
+    const commitJson = await commitResponse.json();
+    commitData = commitJson.all;
+	// Set codeFrequencyData
+	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
+    const codeFrequencyJson = await codeFrequencyResponse.json();
+    codeFrequencyData = codeFrequencyJson;
 }
