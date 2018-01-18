@@ -16,6 +16,7 @@ var commitData;
 var codeFrequencyData;
 // Codeflower data
 var repositoryStateData;
+var minDate, maxDate;
 
 // Initialize basic view
 function init_visualisation()
@@ -66,7 +67,7 @@ function growth_visualisation()
 	{
 		// Growth analysis as callback
 		change_title(titleLeftX, "Growth analysis of: " + repositoryData.name);
-		console.log(commitData);
+		
 		var switchButton = parentSvg.append('svg:image')
 			.classed("switchButton", true)
 			.attr("x", (svgWidth / 10) * 8.5)
@@ -79,20 +80,21 @@ function growth_visualisation()
 				structure_visualisation();
 			})	
 		
-		
-		var growthMargin = {top: 20, right: 20, bottom: 70, left: 40};
-		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5  - growthMargin.left - growthMargin.right;
-		var growthDataHeight = ((svgHeight / 50) * 44) / 1.5 - growthMargin.top - growthMargin.bottom;
+		var padding = 60;
+		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5 - padding;
+		var growthDataHeight = ((svgHeight / 50) * 44) / 2 - padding;
 		var growthDataX = 50;
-		var growthDataY = ((svgHeight / 50) * 8);
+		var growthDataY = ((svgHeight / 50) * 6);
 
-		
+		////////////////////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////////////
 		// Actual visualisations for growth analysis - CommitData
+		////////////////////////////////////////////////////////////////////////////////////////
+		
 		var maxCommitValue = d3.max(commitData, function(d) { return d; });
-
 		var commitDataSvg = d3.select('.parentSvg').append('svg')
-			.attr('width', growthDataWidth + growthMargin.left + growthMargin.right)
-			.attr('height', growthDataHeight)
+			.attr('width', growthDataWidth + padding)
+			.attr('height', growthDataHeight + padding)
 			.attr('x', growthDataX)
 			.attr('y', growthDataY)
 			.classed("commitDataSvg", true)
@@ -103,23 +105,129 @@ function growth_visualisation()
 			.data(commitData);
 			
 		barSelection.enter().append("rect")
-			.attr("x",  function(d, i) {return i * (growthDataWidth / 52)})
-			.attr("y", function(d, i) {return growthDataHeight -((d / maxCommitValue) * growthDataHeight) - growthMargin.bottom/4;})
+			.classed("bar", true)
+			.attr("x",  function(d, i) {return i * ((growthDataWidth) / 52) + padding})
+			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight);})
 			.attr("width", growthDataWidth / 52 )
 			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
 
+		// define the y scale  (vertical)
+        var yCommitScale = d3.scale.linear()
+	        .domain([0, Math.ceil(maxCommitValue / 10) * 10])    // values between 0 and i
+			.range([growthDataHeight, 0]);
 			
+		    
+		// define the x scale (horizontal)
+		var maxDate = new Date();
+		var minDate = new Date();
+		minDate.setDate(maxDate.getDate() - (7 * 52));
 			
+		var xCommitScale = d3.time.scale()
+			.domain([minDate, maxDate])
+			.range([padding, growthDataWidth + padding]);
+	
+        // define the y axis
+        var yCommitAxis = d3.svg.axis()
+            .orient("left")
+            .scale(yCommitScale);
+        
+        // define the y axis
+        var xCommitAxis = d3.svg.axis()
+            .orient("bottom")
+            .scale(xCommitScale);
+            
+        // draw y axis with labels and move in from the size by the amount of padding
+        commitDataSvg.append("g")
+			.attr("class", "yCommitAxis")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(yCommitAxis);
+
+        // draw x axis with labels and move to the bottom of the chart area
+        commitDataSvg.append("g")
+            .attr("class", "xCommitAxis") 
+            .attr("transform", "translate(0," + (growthDataHeight) + ")")
+            .call(xCommitAxis);
 			
+		commitDataSvg.selectAll(".xCommitAxis text") 
+			.attr("transform", function(d) 
+			{
+				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+			});
+			
+		commitDataSvg.selectAll(".yCommitAxis").append("text")
+			.classed("commitTitle", true)
+			.text("Commits per week")
+			.attr('x', -150)
+			.attr('y', -40)
+			.attr("transform", function(d) 
+			{
+                return "rotate(-90)" 
+			});;			
+			
+		////////////////////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////////////
 		// Actual visualisations for growth analysis - CodeFrequency
+		////////////////////////////////////////////////////////////////////////////////////////
+		console.log(codeFrequencyData);
+		
+		var maxCodeValue = d3.max([getTopValue(codeFrequencyData, 1), -getBotValue(codeFrequencyData, 2)], function(d) { return d; });
+		
 		var codeFrequencyDataSvg = d3.select('.parentSvg').append('svg')
-			.attr('width', growthDataWidth + growthMargin.left + growthMargin.right)
-			.attr('height', growthDataHeight)
+			.attr('width', growthDataWidth + padding)
+			.attr('height', growthDataHeight + padding)
 			.attr('x', growthDataX)
-			.attr('y', growthDataHeight + growthDataY)
+			.attr('y', (growthDataHeight + padding) + growthDataY)
 			.classed("codeFrequencyDataSvg", true);
 		codeFrequencyDataSvg = d3.select('.codeFrequencyDataSvg');
 		
+		var barSelection = codeFrequencyDataSvg.selectAll("rect")
+			.data(commitData);
+			
+		barSelection.enter().append("rect")
+			.attr("x",  function(d, i) {return i * ((growthDataWidth) / 52) + padding})
+			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight);})
+			.attr("width", growthDataWidth / 52 )
+			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
+
+		// define the y scale  (vertical)
+        var yCodeScale = d3.scale.linear()
+	        .domain([0, maxCommitValue])    // values between 0 and i
+			.range([growthDataHeight, 0]);
+		    
+		// define the x scale (horizontal)
+		var maxDate = new Date(codeFrequencyData[(codeFrequencyData.length - 1).toString()]["0"]*1000);
+		var minDate = new Date(codeFrequencyData["0"]["0"]*1000);
+		
+		var xCodeScale = d3.time.scale()
+			.domain([minDate, maxDate])
+			.range([padding, growthDataWidth + padding]);
+	
+        // define the y axis
+        var yCodeAxis = d3.svg.axis()
+            .orient("left")
+            .scale(yCodeScale);
+        
+        // define the y axis
+        var xCodeAxis = d3.svg.axis()
+            .orient("bottom")
+            .scale(xCodeScale);
+            
+        // draw y axis with labels and move in from the size by the amount of padding
+        codeFrequencyDataSvg.append("g")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(yCodeAxis);
+
+        // draw x axis with labels and move to the bottom of the chart area
+        codeFrequencyDataSvg.append("g")
+            .attr("class", "xCodeAxis")   // give it a class so it can be used to select only xaxis labels  below
+            .attr("transform", "translate(0," + (growthDataHeight) + ")")
+            .call(xCodeAxis);
+			
+		codeFrequencyDataSvg.selectAll(".xCodeAxis text")  // select all the text elements for the xaxis
+			.attr("transform", function(d) 
+			{
+				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+			});
 	});
 }
 
@@ -310,4 +418,34 @@ const setData = async () => {
     const codeFrequencyJson = await codeFrequencyResponse.json();
     codeFrequencyData = codeFrequencyJson;
 	growth_visualisation();
+}
+
+function getTopValue(arr, prop) 
+{
+	// clone before sorting, to preserve the original array
+	var clone = arr.slice(0); 
+
+	// sort descending
+	clone.sort(function(x, y) {
+		if (x[prop] == y[prop]) return 0;
+		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
+		else return -1;
+	});
+	var maxValue = clone.slice(0, 1);
+	return maxValue[0][prop];
+}
+
+function getBotValue(arr, prop) 
+{
+	// clone before sorting, to preserve the original array
+	var clone = arr.slice(0); 
+
+	// sort descending
+	clone.sort(function(y, x) {
+		if (x[prop] == y[prop]) return 0;
+		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
+		else return -1;
+	});
+	var minValue = clone.slice(0, 1);
+	return minValue[0][prop];
 }

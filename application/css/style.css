@@ -3,7 +3,6 @@
 	border-color: blueviolet;
 }
 
-
 input[type=text] {
     width: 200px;	
 	padding: 6px;
@@ -29,4 +28,13 @@ input[type=text] {
 
 .search-container button:hover {
   background: #ccc;
+}
+
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: brown;
 }
