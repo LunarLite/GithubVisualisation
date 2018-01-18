@@ -64,9 +64,9 @@ function growth_visualisation()
 {	
 	wipe_screen(function()
 	{
+		// Growth analysis as callback
 		change_title(titleLeftX, "Growth analysis of: " + repositoryData.name);
-		
-		
+		console.log(commitData);
 		var switchButton = parentSvg.append('svg:image')
 			.classed("switchButton", true)
 			.attr("x", (svgWidth / 10) * 8.5)
@@ -78,8 +78,49 @@ function growth_visualisation()
 			{
 				structure_visualisation();
 			})	
+		
+		
+		var growthMargin = {top: 20, right: 20, bottom: 70, left: 40};
+		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5  - growthMargin.left - growthMargin.right;
+		var growthDataHeight = ((svgHeight / 50) * 44) / 1.5 - growthMargin.top - growthMargin.bottom;
+		var growthDataX = 50;
+		var growthDataY = ((svgHeight / 50) * 8);
+
+		
+		// Actual visualisations for growth analysis - CommitData
+		var maxCommitValue = d3.max(commitData, function(d) { return d; });
+
+		var commitDataSvg = d3.select('.parentSvg').append('svg')
+			.attr('width', growthDataWidth + growthMargin.left + growthMargin.right)
+			.attr('height', growthDataHeight)
+			.attr('x', growthDataX)
+			.attr('y', growthDataY)
+			.classed("commitDataSvg", true)
+
+		commitDataSvg = d3.select('.commitDataSvg');
+		
+		var barSelection = commitDataSvg.selectAll("rect")
+			.data(commitData);
+			
+		barSelection.enter().append("rect")
+			.attr("x",  function(d, i) {return i * (growthDataWidth / 52)})
+			.attr("y", function(d, i) {return growthDataHeight -((d / maxCommitValue) * growthDataHeight) - growthMargin.bottom/4;})
+			.attr("width", growthDataWidth / 52 )
+			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
+
+			
+			
+			
+		// Actual visualisations for growth analysis - CodeFrequency
+		var codeFrequencyDataSvg = d3.select('.parentSvg').append('svg')
+			.attr('width', growthDataWidth + growthMargin.left + growthMargin.right)
+			.attr('height', growthDataHeight)
+			.attr('x', growthDataX)
+			.attr('y', growthDataHeight + growthDataY)
+			.classed("codeFrequencyDataSvg", true);
+		codeFrequencyDataSvg = d3.select('.codeFrequencyDataSvg');
+		
 	});
-	
 }
 
 // Triggered by clicking `search` button, fetches GH API data, sends it to #search_results()
@@ -183,7 +224,6 @@ function add_results(data_results)
 			{
 				repositoryData = d;
 				setData();
-				growth_visualisation();
 			})	
 			
 	// Remove excess buttons based on data
@@ -269,4 +309,5 @@ const setData = async () => {
 	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
     const codeFrequencyJson = await codeFrequencyResponse.json();
     codeFrequencyData = codeFrequencyJson;
+	growth_visualisation();
 }
