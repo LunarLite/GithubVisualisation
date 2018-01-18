@@ -153,24 +153,14 @@ function growth_visualisation()
 			{
 				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
 			});
-			
-		commitDataSvg.selectAll(".yCommitAxis").append("text")
-			.classed("commitTitle", true)
-			.text("Commits per week")
-			.attr('x', -150)
-			.attr('y', -40)
-			.attr("transform", function(d) 
-			{
-                return "rotate(-90)" 
-			});;			
+	
 			
 		////////////////////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////////////////////////
 		// Actual visualisations for growth analysis - CodeFrequency
 		////////////////////////////////////////////////////////////////////////////////////////
-		console.log(codeFrequencyData);
-		
-		var maxCodeValue = d3.max([getTopValue(codeFrequencyData, 1), -getBotValue(codeFrequencyData, 2)], function(d) { return d; });
+
+		var maxCodeValue = d3.max([getTopValue(codeFrequencyData, 1), getBotValue(codeFrequencyData, 2)], function(d) { return d; });
 		
 		var codeFrequencyDataSvg = d3.select('.parentSvg').append('svg')
 			.attr('width', growthDataWidth + padding)
@@ -178,20 +168,11 @@ function growth_visualisation()
 			.attr('x', growthDataX)
 			.attr('y', (growthDataHeight + padding) + growthDataY)
 			.classed("codeFrequencyDataSvg", true);
-		codeFrequencyDataSvg = d3.select('.codeFrequencyDataSvg');
-		
-		var barSelection = codeFrequencyDataSvg.selectAll("rect")
-			.data(commitData);
+		codeFrequencyDataSvg = d3.select('.codeFrequencyDataSvg');			
 			
-		barSelection.enter().append("rect")
-			.attr("x",  function(d, i) {return i * ((growthDataWidth) / 52) + padding})
-			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight);})
-			.attr("width", growthDataWidth / 52 )
-			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
-
 		// define the y scale  (vertical)
         var yCodeScale = d3.scale.linear()
-	        .domain([0, maxCommitValue])    // values between 0 and i
+	        .domain([-maxCodeValue, maxCodeValue])    // values between 0 and i
 			.range([growthDataHeight, 0]);
 		    
 		// define the x scale (horizontal)
@@ -228,6 +209,29 @@ function growth_visualisation()
 			{
 				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
 			});
+			
+			
+		var positiveLine = d3.svg.line()
+			.x(function(d, i) { return (i / codeFrequencyData.length) * growthDataWidth + padding;})
+			.y(function(d) { return -((d["1"] / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2); })
+			.interpolate('linear');
+
+		var positiveLines = codeFrequencyDataSvg.append("path")
+			.attr("d", positiveLine(codeFrequencyData))
+			.attr("stroke", "green")
+			.attr("stroke-width", 2)
+			.attr("fill", "none");
+			
+		var negativeLine = d3.svg.line()
+			.x(function(d, i) { return (i / codeFrequencyData.length) * growthDataWidth + padding;})
+			.y(function(d) { return -((d["2"] / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2); })
+			.interpolate('linear');
+
+		var negativeLines = codeFrequencyDataSvg.append("path")
+			.attr("d", negativeLine(codeFrequencyData))
+			.attr("stroke", "red")
+			.attr("stroke-width", 2)
+			.attr("fill", "none");
 	});
 }
 
