@@ -15,8 +15,8 @@ var repositoryData;
 var commitData;
 var codeFrequencyData;
 // Codeflower data
-var repositoryStateData;
-var minDate, maxDate;
+var structureData;
+var commitHistory;
 
 // Initialize basic view
 function init_visualisation()
@@ -55,7 +55,9 @@ function structure_visualisation()
 			{
 				growth_visualisation();
 			})	
-	
+			
+		console.log(commitHistory);
+		console.log(structureData);
 	});
 
 }
@@ -421,6 +423,18 @@ const setData = async () => {
 	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
     const codeFrequencyJson = await codeFrequencyResponse.json();
     codeFrequencyData = codeFrequencyJson;
+	
+	
+	// Set structureData
+	const commitHistoryResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/commits');
+	const commitHistoryJson = await commitHistoryResponse.json();
+	commitHistory = commitHistoryJson;
+	
+	const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[0]["sha"] + '?recursive=1');
+	const structureJson = await structureResponse.json();
+	structureData = structureJson;
+	
+	
 	growth_visualisation();
 }
 
