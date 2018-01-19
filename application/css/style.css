@@ -38,3 +38,11 @@ input[type=text] {
 .bar:hover {
   fill: brown;
 }
+
+.link {
+  stroke: #000;
+}
+
+.node {
+  stroke: #000;
+}
