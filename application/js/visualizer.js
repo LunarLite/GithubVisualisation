@@ -20,7 +20,7 @@ var structureData;
 var commitHistory;
 var structureRoot;
 // Colour
-var color = d3.scale.category10()
+var color = d3.scale.category20()
 
 // Initialize basic view
 function init_visualisation()
@@ -531,13 +531,14 @@ async function formStructure (structureJson)
 	
 	structureJson.forEach(function(entry)
 	{
+		var name = entry.path;
 		if(!entry.path.includes("/"))
 		{
 			// Is a folder
 			if(entry.type == "blob")
 			{
-				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "file", name: entry.path});
-				graph.nodes[fileCount]["type"] = "file";
+				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: getFileType(name), name: entry.path});
+				graph.nodes[fileCount]["type"] = getFileType(name);
 				
 			}
 			// Is a file
@@ -560,8 +561,6 @@ async function formStructure (structureJson)
 			}
 			// Get name of folder it's ment to be placed in
 			var path = entry.path.slice(0, cutOffPoint);
-			// Full path name
-			var name = entry.path;
 			var type = entry.type;
 			// Check all links for their path
 			graph.links.forEach(function(entry)
@@ -636,7 +635,8 @@ function getBotValue(arr, prop)
 	return minValue[0][prop];
 }
 
-d3.legend = function(g) {
+d3.legend = function(g) 
+{
   g.each(function() {
     var g= d3.select(this),
         items = {},
