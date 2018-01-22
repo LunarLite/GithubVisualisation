@@ -1,8 +1,8 @@
 var xhr = new XMLHttpRequest();
 var max_results = 10;
 var delayInMilliseconds = 100; //0.1 second
-var svgWidth = 960;
-var svgHeight = 500;
+var svgWidth = 1440;
+var svgHeight = 750;
 var imageSize = 256;
 var titleStandardX = svgWidth / 2.8;
 var titleLeftX =  svgWidth / 80;
@@ -60,7 +60,7 @@ async function structure_visualisation()
 				growth_visualisation();
 			})	
 			
-		var graph = await formStructure(structureData["tree"], structureRoot);
+		var graph = await formStructure(structureData["tree"]);
 
 		var force = d3.layout.force()
 			.nodes(graph.nodes)
