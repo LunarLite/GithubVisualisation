@@ -13,10 +13,14 @@ var parentSvg, svgTitle, initImage;
 var repositoryData;
 // Growth analysis data
 var commitData;
+var commitDataSize = 52;
 var codeFrequencyData;
 // Codeflower data
 var structureData;
 var commitHistory;
+var structureRoot;
+// Colour
+var color = d3.scale.category20b()
 
 // Initialize basic view
 function init_visualisation()
@@ -37,9 +41,9 @@ function init_visualisation()
 }
 
 // Wipe and start structure view
-function structure_visualisation()
+async function structure_visualisation()
 {	
-	wipe_screen(function()
+	await wipe_screen(async function()
 	{
 		change_title(titleLeftX, "Structure view of: " + repositoryData.name);
 	
@@ -56,52 +60,30 @@ function structure_visualisation()
 				growth_visualisation();
 			})	
 			
-		console.log(commitHistory);
-		console.log(structureData);
-			
-		var graph = {
-		  nodes: d3.range(13).map(Object),
-		  links: [
-			{source:  0, target:  1},
-			{source:  1, target:  2},
-			{source:  2, target:  0},
-			{source:  1, target:  3},
-			{source:  3, target:  2},
-			{source:  3, target:  4},
-			{source:  4, target:  5},
-			{source:  5, target:  6},
-			{source:  5, target:  7},
-			{source:  6, target:  7},
-			{source:  6, target:  8},
-			{source:  7, target:  8},
-			{source:  9, target:  4},
-			{source:  9, target: 11},
-			{source:  9, target: 10},
-			{source: 10, target: 11},
-			{source: 11, target: 12},
-			{source: 12, target: 10}
-		  ]
-		};
+		var graph1 = await formStructure(structureData["tree"], structureRoot);
+		console.log(graph1);
+		console.log(graph1.nodes);
 
 		var force = d3.layout.force()
-			.nodes(graph.nodes)
-			.links(graph.links)
+			.nodes(graph1.nodes)
+			.links(graph1.links)
 			.size([svgWidth, svgHeight])
 			.charge(-200)
 			.on("tick", tick)
 			.start();
 
 		var link = parentSvg.selectAll(".link")
-		   .data(graph.links)
+		   .data(graph1.links)
 		 .enter().append("line")
 		   .attr("class", "link");
-
+		   
 		var node = parentSvg.selectAll(".node")
-		   .data(graph.nodes)
+		   .data(graph1.nodes)
 		 .enter().append("circle")
 		   .attr("class", "node")
 		   .attr("r", 4.5)
-		   .style("fill", "blue	");
+		   .attr('fill', function(d) {return color(d.type);})
+		   .call(force.drag);
 
 		function tick() {
 		  link.attr("x1", function(d) { return d.source.x; })
@@ -162,9 +144,9 @@ function growth_visualisation()
 			
 		barSelection.enter().append("rect")
 			.classed("bar", true)
-			.attr("x",  function(d, i) {return i * ((growthDataWidth) / 52) + padding})
+			.attr("x",  function(d, i) {return i * ((growthDataWidth) / commitDataSize) + padding})
 			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight);})
-			.attr("width", growthDataWidth / 52 )
+			.attr("width", growthDataWidth / commitDataSize )
 			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
 
 		// define the y scale  (vertical)
@@ -176,7 +158,7 @@ function growth_visualisation()
 		// define the x scale (horizontal)
 		var maxDate = new Date();
 		var minDate = new Date();
-		minDate.setDate(maxDate.getDate() - (7 * 52));
+		minDate.setDate(maxDate.getDate() - (7 * commitDataSize));
 			
 		var xCommitScale = d3.time.scale()
 			.domain([minDate, maxDate])
@@ -474,11 +456,38 @@ function shift_image_in()
 		.attr('x', (svgWidth / 2 - imageSize/2));
 }
 
-const setData = async () => {
+const setData = async () => 
+{
 	// Set weekly commit data from last year
     const commitResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/participation');
     const commitJson = await commitResponse.json();
     commitData = commitJson.all;
+	
+	commitDataSize = 52;
+	var commitDataStart = 0;
+	var commitDataEnd = true;
+	commitData.every(function(element, index) 
+	{
+		if (element == 0 ){ commitDataStart += 1; }
+		if (element != 0) return false
+		else return true
+	});
+	commitData = commitData.splice(commitDataStart, commitData.length);
+	commitDataSize -= commitDataStart;
+	
+	while(commitDataEnd)
+	{
+		if(commitData[commitData.length - 1] == 0)
+		{
+			commitData = commitData.splice(0, commitData.length - 1);
+			commitDataSize -= 1;
+		}
+		else
+		{
+			commitDataEnd = false;
+		}
+	}
+
 	// Set codeFrequencyData
 	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
     const codeFrequencyJson = await codeFrequencyResponse.json();
@@ -496,6 +505,37 @@ const setData = async () => {
 	
 	
 	growth_visualisation();
+}
+
+async function formStructure (structureJson)
+{
+	var nodeCount = structureJson.length + 1;
+	var graph = {
+		nodes: 0,
+		links: []};
+
+	var fileCount = 1;
+	
+	
+	graph.links.push({source:  0, target:  0, type: "root", name: "root"});
+	structureJson.forEach(function(entry)
+	{
+		// Is a folder
+		if(entry.type == "blob")
+		{
+			graph.links.push({source:  0, target:  fileCount, type: "folder", name: entry.path});
+		}
+		// Is a file
+		else
+		{
+			graph.links.push({source:  0, target:  fileCount, type: "file", name: entry.path});
+		}
+		fileCount += 1;
+	});
+	
+	graph.nodes = d3.range(fileCount).map(Object);
+	
+	return graph;
 }
 
 function getTopValue(arr, prop) 
