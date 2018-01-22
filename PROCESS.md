@@ -61,6 +61,7 @@ __Day 5:__
 __Day 1:__  
 * Finished the codeflower, decided this definately also needs a zoom function of sorts, since some repositories are just huge.
   * (Try the following repository: "discord.net")  
+  
 __Day 2:__  
 __Day 3:__  
 __Day 4:__  
