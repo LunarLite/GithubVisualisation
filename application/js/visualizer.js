@@ -20,7 +20,7 @@ var structureData;
 var commitHistory;
 var structureRoot;
 // Colour
-var color = d3.scale.category20b()
+var color = d3.scale.category10()
 
 // Initialize basic view
 function init_visualisation()
@@ -60,29 +60,28 @@ async function structure_visualisation()
 				growth_visualisation();
 			})	
 			
-		var graph1 = await formStructure(structureData["tree"], structureRoot);
-		console.log(graph1);
-		console.log(graph1.nodes);
+		var graph = await formStructure(structureData["tree"], structureRoot);
 
 		var force = d3.layout.force()
-			.nodes(graph1.nodes)
-			.links(graph1.links)
+			.nodes(graph.nodes)
+			.links(graph.links)
 			.size([svgWidth, svgHeight])
 			.charge(-200)
 			.on("tick", tick)
 			.start();
 
 		var link = parentSvg.selectAll(".link")
-		   .data(graph1.links)
+		   .data(graph.links)
 		 .enter().append("line")
 		   .attr("class", "link");
 		   
 		var node = parentSvg.selectAll(".node")
-		   .data(graph1.nodes)
+		   .data(graph.nodes)
 		 .enter().append("circle")
 		   .attr("class", "node")
 		   .attr("r", 4.5)
 		   .attr('fill', function(d) {return color(d.type);})
+		   .attr("data-legend",function(d) { return d.type})
 		   .call(force.drag);
 
 		function tick() {
@@ -94,6 +93,13 @@ async function structure_visualisation()
 		  node.attr("cx", function(d) { return d.x; })
 			  .attr("cy", function(d) { return d.y; });
 		}
+		
+		var legend = parentSvg.append("g")
+			.attr("class","legend")
+			.attr("transform","translate(50, 100)")
+			.style("font-size","12px")
+			.call(d3.legend)
+		
 	});
 
 }
@@ -516,26 +522,88 @@ async function formStructure (structureJson)
 
 	var fileCount = 1;
 	
+	graph.nodes = d3.range(structureJson.length + 1).map(Object);
+
+	graph.links.push({source:  0, target:  0, id: 0 ,type: "root", name: "root"});
+	graph.nodes[0]["type"] = "root";
 	
-	graph.links.push({source:  0, target:  0, type: "root", name: "root"});
+
+	
 	structureJson.forEach(function(entry)
 	{
-		// Is a folder
-		if(entry.type == "blob")
+		if(!entry.path.includes("/"))
 		{
-			graph.links.push({source:  0, target:  fileCount, type: "folder", name: entry.path});
+			// Is a folder
+			if(entry.type == "blob")
+			{
+				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "file", name: entry.path});
+				graph.nodes[fileCount]["type"] = "file";
+				
+			}
+			// Is a file
+			else
+			{
+				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "folder", name: entry.path});
+				graph.nodes[fileCount]["type"] = "folder";
+			}
 		}
-		// Is a file
 		else
 		{
-			graph.links.push({source:  0, target:  fileCount, type: "file", name: entry.path});
+			// Check for last '/'
+			var cutOffPoint = 0;
+			for (var x = 0, y = entry.path.length; x < y; x++)
+			{
+				if(entry.path.charAt(x) == "/")
+				{
+					cutOffPoint = x;
+				}
+			}
+			// Get name of folder it's ment to be placed in
+			var path = entry.path.slice(0, cutOffPoint);
+			// Full path name
+			var name = entry.path;
+			var type = entry.type;
+			// Check all links for their path
+			graph.links.forEach(function(entry)
+			{
+				if(entry.name == path)
+				{
+					// Is a file
+					if(type == "blob")
+					{
+						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: getFileType(name), name: name});
+						graph.nodes[fileCount]["type"] = getFileType(name);
+					}
+					// Is a folder
+					else
+					{
+						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: "folder", name: name});
+						graph.nodes[fileCount]["type"] = "folder";
+					}
+				}
+			});
+			
 		}
 		fileCount += 1;
+		
 	});
 	
-	graph.nodes = d3.range(fileCount).map(Object);
 	
 	return graph;
+}
+
+function getFileType (name)
+{
+	var cutOffPoint = 0;
+	for (var x = 0, y = name.length; x < y; x++)
+	{
+		if(name.charAt(x) == ".")
+		{
+			cutOffPoint = x;
+		}
+	}
+	var type = name.slice(cutOffPoint, name.length);
+	return type;
 }
 
 function getTopValue(arr, prop) 
@@ -566,4 +634,54 @@ function getBotValue(arr, prop)
 	});
 	var minValue = clone.slice(0, 1);
 	return minValue[0][prop];
+}
+
+d3.legend = function(g) {
+  g.each(function() {
+    var g= d3.select(this),
+        items = {},
+        svg = d3.select(g.property("nearestViewportElement")),
+        legendPadding = g.attr("data-style-padding") || 5,
+        lb = g.selectAll(".legend-box").data([true]),
+        li = g.selectAll(".legend-items").data([true])
+
+    lb.enter().append("rect").classed("legend-box",true)
+    li.enter().append("g").classed("legend-items",true)
+
+    svg.selectAll("[data-legend]").each(function() {
+        var self = d3.select(this)
+        items[self.attr("data-legend")] = {
+          pos : self.attr("data-legend-pos") || this.getBBox().y,
+          color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke") 
+        }
+      })
+
+    items = d3.entries(items).sort(function(a,b) { return a.value.pos-b.value.pos})
+
+    
+    li.selectAll("text")
+        .data(items,function(d) { return d.key})
+        .call(function(d) { d.enter().append("text")})
+        .call(function(d) { d.exit().remove()})
+        .attr("y",function(d,i) { return i+"em"})
+        .attr("x","1em")
+        .text(function(d) { ;return d.key})
+    
+    li.selectAll("circle")
+        .data(items,function(d) { return d.key})
+        .call(function(d) { d.enter().append("circle")})
+        .call(function(d) { d.exit().remove()})
+        .attr("cy",function(d,i) { return i-0.25+"em"})
+        .attr("cx",0)
+        .attr("r","0.4em")
+        .style("fill",function(d) { return d.value.color})  
+    
+    // Reposition and resize the box
+    var lbbox = li[0][0].getBBox()  
+    lb.attr("x",(lbbox.x-legendPadding))
+        .attr("y",(lbbox.y-legendPadding))
+        .attr("height",(lbbox.height+2*legendPadding))
+        .attr("width",(lbbox.width+2*legendPadding))
+  })
+  return g
 }
