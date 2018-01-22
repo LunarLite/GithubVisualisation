@@ -66,7 +66,7 @@ async function structure_visualisation()
 			.nodes(graph.nodes)
 			.links(graph.links)
 			.size([svgWidth, svgHeight])
-			.charge(-200)
+			.charge(-80)
 			.on("tick", tick)
 			.start();
 
