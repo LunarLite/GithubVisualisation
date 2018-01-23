@@ -72,3 +72,12 @@ body {
   fill:white;
   stroke:black;
   opacity:0.8;}
+  
+  .link {
+  stroke: #ccc;
+}
+
+.node text {
+  pointer-events: none;
+  font: 10px sans-serif;
+}

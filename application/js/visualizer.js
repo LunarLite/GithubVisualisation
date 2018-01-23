@@ -46,8 +46,16 @@ async function structure_visualisation()
 	await wipe_screen(async function()
 	{
 		change_title(titleLeftX, "Structure view of: " + repositoryData.name);
-	
-	
+		// zoom stuff
+		var zoom = d3.behavior.zoom()
+			.scaleExtent([0.5, 2])
+			.on("zoom", zoomed);
+			
+		function zoomed() 
+		{
+			codeFlowerBox.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+		}
+		
 		var switchButton = parentSvg.append('svg:image')
 			.classed("switchButton", true)
 			.attr("x", (svgWidth / 10) * 8.5)
@@ -61,37 +69,61 @@ async function structure_visualisation()
 			})	
 			
 		var graph = await formStructure(structureData["tree"]);
-
 		var force = d3.layout.force()
 			.nodes(graph.nodes)
 			.links(graph.links)
 			.size([svgWidth, svgHeight])
-			.charge(-80)
+			.charge(-200)
 			.on("tick", tick)
 			.start();
+			
+		parentSvg.call(zoom);
+		var codeFlowerBox = parentSvg.append("g")
+			.attr("class", "codeFlowerBox");
 
-		var link = parentSvg.selectAll(".link")
+
+		var link = codeFlowerBox.selectAll(".link")
 		   .data(graph.links)
 		 .enter().append("line")
 		   .attr("class", "link");
 		   
-		var node = parentSvg.selectAll(".node")
+		var g = codeFlowerBox.selectAll(".container")
 		   .data(graph.nodes)
-		 .enter().append("circle")
-		   .attr("class", "node")
-		   .attr("r", 4.5)
-		   .attr('fill', function(d) {return color(d.type);})
-		   .attr("data-legend",function(d) { return d.type})
-		   .call(force.drag);
+				.enter().append("g")
+				.attr("class", "container")
+				.on("mouseover", function(i)
+				{
+					g.style("opacity", .2); 
+					d3.select(this)
+						.style("opacity", 1);
+				})
+				.on("mouseout", function(){g.style("opacity", 1);});
+		   
+	   var node = g.append("circle")
+			.attr("class", "node")
+			.attr("r", 4.5)
+			.attr('fill', function(d) {return color(d.type);})
+			.attr("data-legend",function(d) { return d.type})
+			.call(force.drag);
 
-		function tick() {
-		  link.attr("x1", function(d) { return d.source.x; })
-			  .attr("y1", function(d) { return d.source.y; })
-			  .attr("x2", function(d) { return d.target.x; })
-			  .attr("y2", function(d) { return d.target.y; });
+		   
+		var nodeText = g.append("text")
+			.attr("class", "nodeText")
+			.text(function(d){return d.name})
+			.attr("pointer-events", "none");
+			
+		
+		function tick() 
+		{
+			link.attr("x1", function(d) { return d.source.x; })
+				.attr("y1", function(d) { return d.source.y; })
+				.attr("x2", function(d) { return d.target.x; })
+				.attr("y2", function(d) { return d.target.y; });
 
-		  node.attr("cx", function(d) { return d.x; })
-			  .attr("cy", function(d) { return d.y; });
+			node.attr("cx", function(d) { return d.x; })
+				.attr("cy", function(d) { return d.y; });
+			nodeText.attr("x", function(d) { return d.x - 10; })
+				.attr("y", function(d) { return d.y + 12; });
 		}
 		
 		var legend = parentSvg.append("g")
@@ -100,6 +132,8 @@ async function structure_visualisation()
 			.style("font-size","12px")
 			.call(d3.legend)
 		
+		
+
 	});
 
 }
@@ -526,11 +560,13 @@ async function formStructure (structureJson)
 
 	graph.links.push({source:  0, target:  0, id: 0 ,type: "root", name: "root"});
 	graph.nodes[0]["type"] = "root";
+	graph.nodes[0]["name"] = "root";
 	
 
 	
 	structureJson.forEach(function(entry)
 	{
+		//console.log(entry);
 		var name = entry.path;
 		if(!entry.path.includes("/"))
 		{
@@ -539,13 +575,14 @@ async function formStructure (structureJson)
 			{
 				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: getFileType(name), name: entry.path});
 				graph.nodes[fileCount]["type"] = getFileType(name);
-				
+				graph.nodes[fileCount]["name"] = getFileName(name);
 			}
 			// Is a file
 			else
 			{
 				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "folder", name: entry.path});
 				graph.nodes[fileCount]["type"] = "folder";
+				graph.nodes[fileCount]["name"] = getFileName(name);
 			}
 		}
 		else
@@ -572,12 +609,14 @@ async function formStructure (structureJson)
 					{
 						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: getFileType(name), name: name});
 						graph.nodes[fileCount]["type"] = getFileType(name);
+						graph.nodes[fileCount]["name"] = getFileName(name);
 					}
 					// Is a folder
 					else
 					{
 						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: "folder", name: name});
 						graph.nodes[fileCount]["type"] = "folder";
+						graph.nodes[fileCount]["name"] = getFileName(name);
 					}
 				}
 			});
@@ -603,6 +642,20 @@ function getFileType (name)
 	}
 	var type = name.slice(cutOffPoint, name.length);
 	return type;
+}
+
+function getFileName (name)
+{
+	var cutOffPoint = 0;
+	for (var x = 0, y = name.length; x < y; x++)
+	{
+		if(name.charAt(x) == "/")
+		{
+			cutOffPoint = x + 1;
+		}
+	}
+	var result = name.slice(cutOffPoint, name.length);
+	return result;
 }
 
 function getTopValue(arr, prop) 
