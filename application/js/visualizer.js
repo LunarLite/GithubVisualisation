@@ -1,8 +1,8 @@
 var xhr = new XMLHttpRequest();
 var max_results = 10;
 var delayInMilliseconds = 100; //0.1 second
-var svgWidth = 1440;
-var svgHeight = 750;
+var svgWidth = 960;
+var svgHeight = 500;
 var imageSize = 256;
 var titleStandardX = svgWidth / 2.8;
 var titleLeftX =  svgWidth / 80;
