@@ -46,7 +46,7 @@ async function structure_visualisation()
 	await wipe_screen(async function()
 	{
 		change_title(titleLeftX, "Structure view of: " + repositoryData.name);
-		// zoom stuff
+		// zoom stuff		
 		var zoom = d3.behavior.zoom()
 			.scaleExtent([0.5, 2])
 			.on("zoom", zoomed);
@@ -55,6 +55,7 @@ async function structure_visualisation()
 		{
 			codeFlowerBox.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 		}
+		
 		
 		var switchButton = parentSvg.append('svg:image')
 			.classed("switchButton", true)
@@ -77,7 +78,12 @@ async function structure_visualisation()
 			.on("tick", tick)
 			.start();
 			
-		parentSvg.call(zoom);
+		parentSvg.call(zoom)
+			.on("mousedown.zoom", null)
+			.on("touchstart.zoom", null)
+			.on("touchmove.zoom", null)
+			.on("touchend.zoom", null);;
+		
 		var codeFlowerBox = parentSvg.append("g")
 			.attr("class", "codeFlowerBox");
 
@@ -93,11 +99,17 @@ async function structure_visualisation()
 				.attr("class", "container")
 				.on("mouseover", function(i)
 				{
-					g.style("opacity", .2); 
-					d3.select(this)
+					g.style("opacity", .1); 
+					var temp = d3.select(this)
+						.style("opacity", 1);
+					temp.selectAll(".nodeText")
 						.style("opacity", 1);
 				})
-				.on("mouseout", function(){g.style("opacity", 1);});
+				.on("mouseout", function()
+				{
+					g.style("opacity", 1);
+					nodeText.style("opacity", 0.1)
+				});
 		   
 	   var node = g.append("circle")
 			.attr("class", "node")
@@ -112,6 +124,8 @@ async function structure_visualisation()
 			.text(function(d){return d.name})
 			.attr("pointer-events", "none");
 			
+		nodeText.style("opacity", 0.1);
+			
 		
 		function tick() 
 		{
@@ -123,7 +137,7 @@ async function structure_visualisation()
 			node.attr("cx", function(d) { return d.x; })
 				.attr("cy", function(d) { return d.y; });
 			nodeText.attr("x", function(d) { return d.x - 10; })
-				.attr("y", function(d) { return d.y + 12; });
+				.attr("y", function(d) { return d.y - 12; });
 		}
 		
 		var legend = parentSvg.append("g")
@@ -496,7 +510,7 @@ function shift_image_in()
 		.attr('x', (svgWidth / 2 - imageSize/2));
 }
 
-const setData = async () => 
+async function setData()
 {
 	// Set weekly commit data from last year
     const commitResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/participation');
