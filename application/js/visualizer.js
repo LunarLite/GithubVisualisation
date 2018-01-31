@@ -21,6 +21,11 @@ var commitHistory;
 var structureRoot;
 // Colour
 var color = d3.scale.category20()
+var slider;
+var sliderValue;
+
+var codeFlowerBox;
+
 
 // Initialize basic view
 function init_visualisation()
@@ -32,6 +37,7 @@ function init_visualisation()
 		.classed("parentSvg", true);
 		
 	parentSvg = d3.select('.parentSvg');
+
 	
 	wipe_screen(function() 
 	{
@@ -84,7 +90,7 @@ async function structure_visualisation()
 			.on("touchmove.zoom", null)
 			.on("touchend.zoom", null);;
 		
-		var codeFlowerBox = parentSvg.append("g")
+		codeFlowerBox = parentSvg.append("g")
 			.attr("class", "codeFlowerBox");
 
 
@@ -169,12 +175,14 @@ function growth_visualisation()
 			.attr("xlink:href", "images/template_button.png")
 			.on("click", function(d,i)
 			{
+				slider.value = 100;
 				structure_visualisation();
 			})	
 		
+		var topPadding = 30;
 		var padding = 60;
 		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5 - padding;
-		var growthDataHeight = ((svgHeight / 50) * 44) / 2 - padding;
+		var growthDataHeight = ((svgHeight / 50) * 44) / 2 - padding - topPadding;
 		var growthDataX = 50;
 		var growthDataY = ((svgHeight / 50) * 6);
 
@@ -186,7 +194,7 @@ function growth_visualisation()
 		var maxCommitValue = d3.max(commitData, function(d) { return d; });
 		var commitDataSvg = d3.select('.parentSvg').append('svg')
 			.attr('width', growthDataWidth + padding)
-			.attr('height', growthDataHeight + padding)
+			.attr('height', growthDataHeight + padding + topPadding)
 			.attr('x', growthDataX)
 			.attr('y', growthDataY)
 			.classed("commitDataSvg", true)
@@ -199,7 +207,7 @@ function growth_visualisation()
 		barSelection.enter().append("rect")
 			.classed("bar", true)
 			.attr("x",  function(d, i) {return i * ((growthDataWidth) / commitDataSize) + padding})
-			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight);})
+			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight) + topPadding;})
 			.attr("width", growthDataWidth / commitDataSize )
 			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
 
@@ -231,19 +239,19 @@ function growth_visualisation()
         // draw y axis with labels and move in from the size by the amount of padding
         commitDataSvg.append("g")
 			.attr("class", "yCommitAxis")
-            .attr("transform", "translate(" + padding + ",0)")
+            .attr("transform", "translate(" + padding + "," + topPadding + ")")
             .call(yCommitAxis);
 
         // draw x axis with labels and move to the bottom of the chart area
         commitDataSvg.append("g")
             .attr("class", "xCommitAxis") 
-            .attr("transform", "translate(0," + (growthDataHeight) + ")")
+            .attr("transform", "translate(0," + (growthDataHeight + topPadding) + ")")
             .call(xCommitAxis);
 			
 		commitDataSvg.selectAll(".xCommitAxis text") 
 			.attr("transform", function(d) 
 			{
-				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-35)";
 			});
 	
 			
@@ -256,7 +264,7 @@ function growth_visualisation()
 		
 		var codeFrequencyDataSvg = d3.select('.parentSvg').append('svg')
 			.attr('width', growthDataWidth + padding)
-			.attr('height', growthDataHeight + padding)
+			.attr('height', growthDataHeight + padding + topPadding)
 			.attr('x', growthDataX)
 			.attr('y', (growthDataHeight + padding) + growthDataY)
 			.classed("codeFrequencyDataSvg", true);
@@ -287,19 +295,19 @@ function growth_visualisation()
             
         // draw y axis with labels and move in from the size by the amount of padding
         codeFrequencyDataSvg.append("g")
-            .attr("transform", "translate(" + padding + ",0)")
+            .attr("transform", "translate(" + padding + "," + topPadding + ")")
             .call(yCodeAxis);
 
         // draw x axis with labels and move to the bottom of the chart area
         codeFrequencyDataSvg.append("g")
             .attr("class", "xCodeAxis")   // give it a class so it can be used to select only xaxis labels  below
-            .attr("transform", "translate(0," + (growthDataHeight) + ")")
+            .attr("transform", "translate(0," + (growthDataHeight + topPadding) + ")")
             .call(xCodeAxis);
 			
 		codeFrequencyDataSvg.selectAll(".xCodeAxis text")  // select all the text elements for the xaxis
 			.attr("transform", function(d) 
 			{
-				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+				return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-35)";
 			});
 			
 			
@@ -307,7 +315,7 @@ function growth_visualisation()
 			.x(function(d, i) { return (i / codeFrequencyData.length) * growthDataWidth + padding;})
 			.y(function(d) 
 			{ 
-				return (-((d["1"] / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2)) - 1; 
+				return (-((d["1"] / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2))+ topPadding; 
 			})
 			.interpolate('linear');
 
@@ -321,13 +329,27 @@ function growth_visualisation()
 			.x(function(d, i) { return (i / codeFrequencyData.length) * growthDataWidth + padding;})
 			.y(function(d) 
 			{ 
-				return (-(((d["2"]) / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2)) + 1; 
+				return (-(((d["2"]) / maxCodeValue) * growthDataHeight / 2) + (growthDataHeight / 2))+ topPadding; 
 			})
 			.interpolate('linear');
 
 		var negativeLines = codeFrequencyDataSvg.append("path")
 			.attr("d", negativeLine(codeFrequencyData))
 			.attr("stroke", "red")
+			.attr("stroke-width", 2)
+			.attr("fill", "none");
+		
+		var neutralLine = d3.svg.line()
+			.x(function(d, i) { return (i / codeFrequencyData.length) * growthDataWidth + padding;})
+			.y(function(d) 
+			{ 
+				return (growthDataHeight / 2)+ topPadding; 
+			})
+			.interpolate('linear');
+			
+		var neutralLines = codeFrequencyDataSvg.append("path")
+			.attr("d", neutralLine(codeFrequencyData))
+			.attr("stroke", "black")
 			.attr("stroke-width", 2)
 			.attr("fill", "none");
 	});
@@ -470,6 +492,15 @@ function wipe_screen(callback)
 		.attr("font-size", "25px")
 		.attr("text-decoration", "underline")
 		.text("");
+		
+	svgSubText = parentSvg.append('text')
+		.attr('x', (svgWidth / 50) * 35)
+		.attr('y', (svgHeight / 15) * 14)
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "25px")
+		.attr("text-decoration", "underline")
+		.text("");
+		
 	initImage = parentSvg.append('svg:image')
 		.classed("init_image", true)
 		.style('opacity', 0)
@@ -490,6 +521,18 @@ function change_title(x, text)
 		.transition()
 			.duration(500)
 			.attr('x', x)
+			.text(text)
+			.style('opacity', 1);
+}
+
+// Control (base) components
+function change_subText(text)
+{
+	svgSubText
+		.transition()
+			.duration(500)
+			.attr('x', (svgWidth / 50) * 35)
+			.attr('y', (svgHeight / 15) * 14)
 			.text(text)
 			.style('opacity', 1);
 }
@@ -752,3 +795,37 @@ d3.legend = function(g)
   })
   return g
 }
+
+// Slider control
+window.onload = function () 
+{
+    slider = document.getElementById("slider");
+	slider.value = 100;
+	sliderValue = slider.value;
+	
+	slider.oninput = function() 
+	{
+		if(codeFlowerBox === undefined)
+		{
+			return;
+		}
+		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
+		change_subText(commitHistory[commitPos].commit.author.date);
+		sliderValue = slider.value;
+		
+	}
+	slider.onmouseup = async function()
+	{
+		if(codeFlowerBox === undefined)
+		{
+			return;
+		}
+		
+		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
+		
+		const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[commitPos]["sha"] + '?recursive=1');
+		const structureJson = await structureResponse.json();
+		structureData = structureJson;
+		structure_visualisation();
+	}
+};
