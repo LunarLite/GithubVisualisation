@@ -105,10 +105,9 @@ async function structure_visualisation()
 				.attr("class", "container")
 				.on("mouseover", function(i)
 				{
-					g.style("opacity", .1); 
-					var temp = d3.select(this)
+					d3.select(this)
 						.style("opacity", 1);
-					temp.selectAll(".nodeText")
+					d3.select(this).selectAll(".nodeText")
 						.style("opacity", 1);
 				})
 				.on("mouseout", function()
@@ -183,13 +182,14 @@ function growth_visualisation()
 		var padding = 60;
 		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5 - padding;
 		var growthDataHeight = ((svgHeight / 50) * 44) / 2 - padding - topPadding;
-		var growthDataX = 50;
+		var growthDataX = ((svgWidth / 50) * 12);
 		var growthDataY = ((svgHeight / 50) * 6);
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////////////////////////
 		// Actual visualisations for growth analysis - CommitData
 		////////////////////////////////////////////////////////////////////////////////////////
+		addCommitDescript();
 		
 		var maxCommitValue = d3.max(commitData, function(d) { return d; });
 		var commitDataSvg = d3.select('.parentSvg').append('svg')
@@ -259,7 +259,8 @@ function growth_visualisation()
 		////////////////////////////////////////////////////////////////////////////////////////
 		// Actual visualisations for growth analysis - CodeFrequency
 		////////////////////////////////////////////////////////////////////////////////////////
-
+		addCodeDescript();
+		
 		var maxCodeValue = d3.max([getTopValue(codeFrequencyData, 1), getBotValue(codeFrequencyData, 2)], function(d) { return d; });
 		
 		var codeFrequencyDataSvg = d3.select('.parentSvg').append('svg')
@@ -353,6 +354,97 @@ function growth_visualisation()
 			.attr("stroke-width", 2)
 			.attr("fill", "none");
 	});
+}
+
+function addCommitDescript()
+{
+	var commitDescript = parentSvg.append('text');
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 9)
+			.style("fill", "green")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "13px")
+			.attr("text-decoration", "underline")
+			.text("Amount of commits per week:");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 11)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("This bar chart shows the total amount of commits");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 12)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("per week, from the past year.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 14)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Hovering over a bar will show the amount and date.");
+}
+
+function addCodeDescript()
+{
+	var commitDescript = parentSvg.append('text');
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 29)
+			.style("fill", "green")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "13px")
+			.attr("text-decoration", "underline")
+			.text("CodeFrequency over time");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 31)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("This line-graph shows how many lines of code--");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 32)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("--were removed/added over time.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 34)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Green represents addition.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 35)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Red represents removal.");
 }
 
 // Triggered by clicking `search` button, fetches GH API data, sends it to #search_results()
@@ -747,9 +839,9 @@ function getBotValue(arr, prop)
 
 d3.legend = function(g) 
 {
-  g.each(function() {
+	g.each(function() {
     var g= d3.select(this),
-        items = {},
+		items = {},
         svg = d3.select(g.property("nearestViewportElement")),
         legendPadding = g.attr("data-style-padding") || 5,
         lb = g.selectAll(".legend-box").data([true]),
@@ -758,13 +850,15 @@ d3.legend = function(g)
     lb.enter().append("rect").classed("legend-box",true)
     li.enter().append("g").classed("legend-items",true)
 
-    svg.selectAll("[data-legend]").each(function() {
+    svg.selectAll("[data-legend]").each(function() 
+	{
         var self = d3.select(this)
-        items[self.attr("data-legend")] = {
-          pos : self.attr("data-legend-pos") || this.getBBox().y,
-          color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke") 
+        items[self.attr("data-legend")] = 
+		{
+			pos : self.attr("data-legend-pos") || this.getBBox().y,
+			color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke") 
         }
-      })
+	})
 
     items = d3.entries(items).sort(function(a,b) { return a.value.pos-b.value.pos})
 
