@@ -191,6 +191,14 @@ function growth_visualisation()
 		////////////////////////////////////////////////////////////////////////////////////////
 		addCommitDescript();
 		
+		var tip = d3.tip()
+			.attr('class', 'd3-tip')
+			.offset([-10, 0])
+			.html(function(d) 
+			{
+				return "<strong>Commits:</strong> <span style='color:red'>" + d + "</span>";
+			})
+		
 		var maxCommitValue = d3.max(commitData, function(d) { return d; });
 		var commitDataSvg = d3.select('.parentSvg').append('svg')
 			.attr('width', growthDataWidth + padding)
@@ -199,6 +207,7 @@ function growth_visualisation()
 			.attr('y', growthDataY)
 			.classed("commitDataSvg", true)
 
+		commitDataSvg.call(tip);
 		commitDataSvg = d3.select('.commitDataSvg');
 		
 		var barSelection = commitDataSvg.selectAll("rect")
@@ -210,6 +219,8 @@ function growth_visualisation()
 			.attr("y", function(d, i) {return growthDataHeight - ((d / maxCommitValue) * growthDataHeight) + topPadding;})
 			.attr("width", growthDataWidth / commitDataSize )
 			.attr("height", function(d, i) {return (d / maxCommitValue) * growthDataHeight})
+			.on('mouseover', tip.show)
+			.on('mouseout', tip.hide);
 
 		// define the y scale  (vertical)
         var yCommitScale = d3.scale.linear()
@@ -456,7 +467,6 @@ function search_repository()
 		// Invalid search query
 		console.log("Non-valid search query");
 		return;
-		
 	}
 	else
 	{	
@@ -570,6 +580,8 @@ function add_results(data_results)
 // Wipe the entire screen and initialize base components. (Title/Image)
 function wipe_screen(callback)
 {
+	codeFlowerBox = null;
+	
 	parentSvg.selectAll("*")
 		.transition()
 			.duration(500)
@@ -899,7 +911,7 @@ window.onload = function ()
 	
 	slider.oninput = function() 
 	{
-		if(codeFlowerBox === undefined)
+		if(codeFlowerBox == null)
 		{
 			return;
 		}
@@ -910,11 +922,10 @@ window.onload = function ()
 	}
 	slider.onmouseup = async function()
 	{
-		if(codeFlowerBox === undefined)
+		if(codeFlowerBox == null)
 		{
 			return;
 		}
-		
 		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
 		
 		const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[commitPos]["sha"] + '?recursive=1');
