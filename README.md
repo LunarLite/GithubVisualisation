@@ -67,3 +67,5 @@ The GithubV3 API will provide all data neccesary.
 
 The d3-tip library *might* be used.
 
+
+### This code goes un-copyright-ed, meaning it's free to use for any and everyone.
