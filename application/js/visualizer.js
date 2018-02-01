@@ -182,7 +182,7 @@ function growth_visualisation()
 		var padding = 60;
 		var growthDataWidth = ((svgWidth / 50) * 44) / 1.5 - padding;
 		var growthDataHeight = ((svgHeight / 50) * 44) / 2 - padding - topPadding;
-		var growthDataX = ((svgWidth / 50) * 12);
+		var growthDataX = ((svgWidth / 50) * 13);
 		var growthDataY = ((svgHeight / 50) * 6);
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -913,6 +913,7 @@ window.onload = function ()
 	{
 		if(codeFlowerBox == null)
 		{
+			slider.value = 100;
 			return;
 		}
 		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
@@ -924,6 +925,7 @@ window.onload = function ()
 	{
 		if(codeFlowerBox == null)
 		{
+			slider.value = 100;
 			return;
 		}
 		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
