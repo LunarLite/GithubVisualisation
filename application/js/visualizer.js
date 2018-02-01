@@ -1,9 +1,27 @@
-var xhr = new XMLHttpRequest();
+/* 	GithubVisualisation Project
+/  	Name: Mick Tozer
+/ 
+/	This .js fully controls the visualisations of the web-page.
+/	It makes use of the GitHub API to retrieve any required data about a GitHub Repository and then visualises the data in:
+/	- A textual visualisation of matching repositories
+/ 	- A bar chart
+/	- A line-graph
+/	- A force-directed graph
+*/
+
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+// Global variables
+////////////////////////////////////////////////////////////////////////////////////////
+
+// Max amount of search results allowed
 var max_results = 10;
-var delayInMilliseconds = 100; //0.1 second
+// Parent svg settings
 var svgWidth = 960;
 var svgHeight = 500;
+// Default image size
 var imageSize = 256;
+// Positions to use for changeTitle();
 var titleStandardX = svgWidth / 2.8;
 var titleLeftX =  svgWidth / 80;
 var titleRightX = (svgWidth / 80) * 60;
@@ -19,16 +37,277 @@ var codeFrequencyData;
 var structureData;
 var commitHistory;
 var structureRoot;
-// Colour
+// Colour scheme
 var color = d3.scale.category20()
+// Slider variables
 var slider;
 var sliderValue;
+// Used for slider, to check if the user is on the structureView
+var codeFlowerBox; 
 
-var codeFlowerBox;
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+// Supporting functions
+////////////////////////////////////////////////////////////////////////////////////////
+
+// Changes the title component for every visualisation
+function changeTitle(x, text)
+{
+	svgTitle
+		.transition()
+			.duration(500)
+			.attr('x', x)
+			.text(text)
+			.style('opacity', 1);
+}
+
+// Control (base) components
+function changeSubText(text)
+{
+	svgSubText
+		.transition()
+			.duration(500)
+			.attr('x', (svgWidth / 50) * 35)
+			.attr('y', (svgHeight / 15) * 14)
+			.text(text)
+			.style('opacity', 1);
+}
+
+// Makes the github logo dissapear
+function shiftImageOut()
+{
+		parentSvg.selectAll(".init_image").transition()
+			.duration(500)
+			.style('opacity', 0)
+			.attr('x', (svgWidth / 80) * 70);
+}
+
+//Makes the github logo appear
+function shiftImageIn()
+{
+	parentSvg.selectAll(".init_image").transition()
+		.duration(500)
+		.style('opacity', 1)
+		.attr('x', (svgWidth / 2 - imageSize/2));
+}
+
+// Retrieves the file type for each file of the force-directed graph
+function getFileType (name)
+{
+	var cutOffPoint = 0;
+	for (var x = 0, y = name.length; x < y; x++)
+	{
+		if(name.charAt(x) == ".")
+		{
+			cutOffPoint = x;
+		}
+	}
+	var type = name.slice(cutOffPoint, name.length);
+	return type;
+}
+
+// Retrieves the file name for each file of the force-directed graph
+function getFileName (name)
+{
+	var cutOffPoint = 0;
+	for (var x = 0, y = name.length; x < y; x++)
+	{
+		if(name.charAt(x) == "/")
+		{
+			cutOffPoint = x + 1;
+		}
+	}
+	var result = name.slice(cutOffPoint, name.length);
+	return result;
+}
+
+// Gets the highest value of the code-frequency data
+function getTopValue(arr, prop) 
+{
+	// clone before sorting, to preserve the original array
+	var clone = arr.slice(0); 
+
+	// sort descending
+	clone.sort(function(x, y) {
+		if (x[prop] == y[prop]) return 0;
+		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
+		else return -1;
+	});
+	var maxValue = clone.slice(0, 1);
+	return maxValue[0][prop];
+}
+
+// Gets the lowest value of the code-frequency data
+function getBotValue(arr, prop) 
+{
+	// clone before sorting, to preserve the original array
+	var clone = arr.slice(0); 
+
+	// sort descending
+	clone.sort(function(y, x) {
+		if (x[prop] == y[prop]) return 0;
+		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
+		else return -1;
+	});
+	var minValue = clone.slice(0, 1);
+	return minValue[0][prop];
+}
+
+// Creates a legend for the force-directed graph with colours based on the file types
+d3.legend = function createLegend(g) 
+{
+	g.each(function() {
+    var g= d3.select(this),
+		items = {},
+        svg = d3.select(g.property("nearestViewportElement")),
+        legendPadding = g.attr("data-style-padding") || 5,
+        lb = g.selectAll(".legend-box").data([true]),
+        li = g.selectAll(".legend-items").data([true])
+
+    lb.enter().append("rect").classed("legend-box",true)
+    li.enter().append("g").classed("legend-items",true)
+
+    svg.selectAll("[data-legend]").each(function() 
+	{
+        var self = d3.select(this)
+        items[self.attr("data-legend")] = 
+		{
+			pos : self.attr("data-legend-pos") || this.getBBox().y,
+			color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke") 
+        }
+	})
+
+    items = d3.entries(items).sort(function(a,b) { return a.value.pos-b.value.pos})
+
+    
+    li.selectAll("text")
+        .data(items,function(d) { return d.key})
+        .call(function(d) { d.enter().append("text")})
+        .call(function(d) { d.exit().remove()})
+        .attr("y",function(d,i) { return i+"em"})
+        .attr("x","1em")
+        .text(function(d) { ;return d.key})
+    
+    li.selectAll("circle")
+        .data(items,function(d) { return d.key})
+        .call(function(d) { d.enter().append("circle")})
+        .call(function(d) { d.exit().remove()})
+        .attr("cy",function(d,i) { return i-0.25+"em"})
+        .attr("cx",0)
+        .attr("r","0.4em")
+        .style("fill",function(d) { return d.value.color})  
+    
+    // Reposition and resize the box
+    var lbbox = li[0][0].getBBox()  
+    lb.attr("x",(lbbox.x-legendPadding))
+        .attr("y",(lbbox.y-legendPadding))
+        .attr("height",(lbbox.height+2*legendPadding))
+        .attr("width",(lbbox.width+2*legendPadding))
+  })
+  return g
+}
+
+// Adds a basic description of the line-graph
+function addCommitDescript()
+{
+	var commitDescript = parentSvg.append('text');
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 9)
+			.style("fill", "green")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "13px")
+			.attr("text-decoration", "underline")
+			.text("Amount of commits per week:");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 11)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("This bar chart shows the total amount of commits");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 12)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("per week, from the past year.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 14)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Hovering over a bar will show the amount and date.");
+}
+
+// Adds a basic description of the bar-chart
+function addCodeDescript()
+{
+	var commitDescript = parentSvg.append('text');
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 29)
+			.style("fill", "green")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "13px")
+			.attr("text-decoration", "underline")
+			.text("CodeFrequency over time");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 31)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("This line-graph shows how many lines of code--");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 32)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("--were removed/added over time.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 34)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Green represents addition.");
+		commitDescript
+			.append("tspan")
+			.attr('x', (svgWidth / 50) * 0.5) 
+			.attr('y', (svgHeight / 50) * 35)
+			.style("fill", "black")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "11px")
+			.attr("font-style", "italic")
+			.text("Red represents removal.");
+}
 
 
-// Initialize basic view
-function init_visualisation()
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+// Main functions
+////////////////////////////////////////////////////////////////////////////////////////
+
+// Creates the base SVG and basic components utilitize wipeScreen()
+function initVisualisation()
 {
 	// Setup the base svg
 	parentSvg = d3.select('body').append('svg')
@@ -39,19 +318,315 @@ function init_visualisation()
 	parentSvg = d3.select('.parentSvg');
 
 	
-	wipe_screen(function() 
+	wipeScreen(function() 
 	{
 		svgTitle.text("Search for a repository!");
 		initImage.style('opacity', 1);
 	});
 }
 
-// Wipe and start structure view
-async function structure_visualisation()
-{	
-	await wipe_screen(async function()
+// Slowly fades out all items in the base SVG, removes them, and re-initilizes the basic components.
+function wipeScreen(callback)
+{
+	codeFlowerBox = null;
+	
+	parentSvg.selectAll("*")
+		.transition()
+			.duration(500)
+			.style('opacity', 0)	
+			.duration(500)
+			.remove();
+			
+	svgTitle = parentSvg.append('text')
+		.attr('x', svgWidth / 2.8)
+		.attr('y', svgHeight / 15)
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "25px")
+		.attr("text-decoration", "underline")
+		.text("");
+		
+	svgSubText = parentSvg.append('text')
+		.attr('x', (svgWidth / 50) * 35)
+		.attr('y', (svgHeight / 15) * 14)
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "25px")
+		.attr("text-decoration", "underline")
+		.text("");
+		
+	initImage = parentSvg.append('svg:image')
+		.classed("init_image", true)
+		.style('opacity', 0)
+		.attr({
+			'xlink:href': 'images/page_icon.png',  // can also add svg file here
+			x: svgWidth / 2 - imageSize/2,
+			y: svgHeight / 2 - imageSize/2,
+			width: imageSize,
+			height: imageSize
+		});
+	callback();
+}
+
+// Using the search query the user gave, it searches the github API and returns said results to searchResults().
+function searchRepository()
+{
+	var query = document.getElementById('searchQuery').value;
+	if (!query)
 	{
-		change_title(titleLeftX, "Structure view of: " + repositoryData.name);
+		// Invalid search query
+		console.log("Non-valid search query");
+		return;
+	}
+	else
+	{	
+		// Get results
+		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=name&order=desc').then(r => r.json()).then(j => searchResults(j.items, query));
+	}	
+}
+
+// Checks the validity of given results (checks for a ratelimit!) and limits the amount of results to 10 before sending them to addResults()
+function searchResults(dataResults, query)
+{	
+	// Ratelimit/error
+	if(!dataResults)
+	{
+		wipeScreen(function()
+		{
+			changeTitle(titleStandardX, "Hit the Github API ratelimit!");
+			shiftImageIn();
+		});
+		return;
+	}
+	// Too many results
+	if(dataResults.length > max_results)
+	{
+		dataResults = dataResults.slice(0, max_results);
+	}	
+	
+	wipeScreen(function()
+	{
+		// Shift&Change main components
+		changeTitle(titleLeftX, "Results for: \"" + query + "\"");
+		shiftImageOut();
+		// Add&Update buttons and results.
+		addResults(dataResults);
+	});
+}
+
+// Adds the results to the parent Svg, accompanied by relevant information and fades them in one by one.
+function addResults(dataResults)
+{
+	// Add results
+	var results = parentSvg.selectAll(".resultText")
+		.data(dataResults);
+	results.enter()
+		.append("text")
+		.attr("x",  10)
+		.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75})
+		.classed("resultText", true);
+	// Remove previous textual descriptions
+	results.selectAll("tspan").remove();
+	// Textual descriptions
+	results.append("tspan").text(function(d, i)
+	{
+			return (i+1) + ". ";
+		});
+	results.append("tspan").style("fill", "green").text(function(d, i)
+	{
+			return d.owner.login + "/";
+		});
+	results.append("tspan").style("fill", "black").text(function(d, i)
+	{
+			return d.name;
+		});	
+	results.append("tspan").style("fill", "black").text(function(d, i)
+	{
+		return (d.size/1000) + "MB";
+	}).attr("x", 350);
+	results.append("tspan").style("fill", "black").text(function(d, i)
+	{
+		return d.created_at;
+	}).attr("x", 450);
+	// Remove excess results based on data
+	results.exit().remove();
+	
+	// Add buttons
+	var resultButtons = parentSvg.selectAll(".resultButton")
+		.data(dataResults);
+	resultButtons
+		.enter()
+		.append('svg:image')
+			.classed("resultButton", true)
+			.attr("x", (svgWidth / 10) * 8)
+			.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 52})
+			.attr("width", imageSize / 7.5)
+			.attr("height", imageSize / 7.5)
+			.attr("xlink:href", "images/go_icon.png")
+			.on("click", function(d,i)
+			{
+				repositoryData = d;
+				setData();
+			})	
+			
+	// Remove excess buttons based on data
+	resultButtons.exit().remove();
+	
+	// Fade results in neatly
+	results
+	.style('opacity', 0)
+	.transition()
+		.duration(function(d,i){return i * 150})
+		.style('opacity', 1);
+	resultButtons
+	.style('opacity', 0)
+	.transition()
+		.duration(function(d,i){return i * 150})
+		.style('opacity', 1);
+	
+}
+
+// Once a given result is chosen by the user, setData retrieves all required data from the chosen repository,
+// has the data manipulated into shape by formStructure() and calls growthVisualistion() when done.
+async function setData()
+{
+	// Set weekly commit data from last year
+    const commitResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/participation');
+    const commitJson = await commitResponse.json();
+    commitData = commitJson.all;
+	
+	commitDataSize = 52;
+	var commitDataStart = 0;
+	var commitDataEnd = true;
+	commitData.every(function(element, index) 
+	{
+		if (element == 0 ){ commitDataStart += 1; }
+		if (element != 0) return false
+		else return true
+	});
+	commitData = commitData.splice(commitDataStart, commitData.length);
+	commitDataSize -= commitDataStart;
+	
+	while(commitDataEnd)
+	{
+		if(commitData[commitData.length - 1] == 0)
+		{
+			commitData = commitData.splice(0, commitData.length - 1);
+			commitDataSize -= 1;
+		}
+		else
+		{
+			commitDataEnd = false;
+		}
+	}
+
+	// Set codeFrequencyData
+	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
+    const codeFrequencyJson = await codeFrequencyResponse.json();
+    codeFrequencyData = codeFrequencyJson;
+	
+	
+	// Set structureData
+	const commitHistoryResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/commits');
+	const commitHistoryJson = await commitHistoryResponse.json();
+	commitHistory = commitHistoryJson;
+	
+	const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[0]["sha"] + '?recursive=1');
+	const structureJson = await structureResponse.json();
+	structureData = structureJson;
+	
+	
+	structureVisualisation();
+}
+
+//Makes sure that the structure of the force-directed graph is properly built and contains all neccesary data.
+async function formStructure(structureJson)
+{
+	var nodeCount = structureJson.length + 1;
+	var graph = {
+		nodes: 0,
+		links: []};
+
+	var fileCount = 1;
+	
+	graph.nodes = d3.range(structureJson.length + 1).map(Object);
+
+	graph.links.push({source:  0, target:  0, id: 0 ,type: "root", name: "root"});
+	graph.nodes[0]["type"] = "root";
+	graph.nodes[0]["name"] = "root";
+	
+
+	
+	structureJson.forEach(function(entry)
+	{
+		//console.log(entry);
+		var name = entry.path;
+		if(!entry.path.includes("/"))
+		{
+			// Is a folder
+			if(entry.type == "blob")
+			{
+				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: getFileType(name), name: entry.path});
+				graph.nodes[fileCount]["type"] = getFileType(name);
+				graph.nodes[fileCount]["name"] = getFileName(name);
+			}
+			// Is a file
+			else
+			{
+				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "folder", name: entry.path});
+				graph.nodes[fileCount]["type"] = "folder";
+				graph.nodes[fileCount]["name"] = getFileName(name);
+			}
+		}
+		else
+		{
+			// Check for last '/'
+			var cutOffPoint = 0;
+			for (var x = 0, y = entry.path.length; x < y; x++)
+			{
+				if(entry.path.charAt(x) == "/")
+				{
+					cutOffPoint = x;
+				}
+			}
+			// Get name of folder it's ment to be placed in
+			var path = entry.path.slice(0, cutOffPoint);
+			var type = entry.type;
+			// Check all links for their path
+			graph.links.forEach(function(entry)
+			{
+				if(entry.name == path)
+				{
+					// Is a file
+					if(type == "blob")
+					{
+						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: getFileType(name), name: name});
+						graph.nodes[fileCount]["type"] = getFileType(name);
+						graph.nodes[fileCount]["name"] = getFileName(name);
+					}
+					// Is a folder
+					else
+					{
+						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: "folder", name: name});
+						graph.nodes[fileCount]["type"] = "folder";
+						graph.nodes[fileCount]["name"] = getFileName(name);
+					}
+				}
+			});
+			
+		}
+		fileCount += 1;
+		
+	});
+	
+	
+	return graph;
+}
+
+// Clears the screen using wipeScreen() and creates the force-directed graph.
+async function structureVisualisation()
+{	
+	await wipeScreen(async function()
+	{
+		changeTitle(titleLeftX, "Structure view of: " + repositoryData.name);
 		// zoom stuff		
 		var zoom = d3.behavior.zoom()
 			.scaleExtent([0.5, 2])
@@ -72,7 +647,7 @@ async function structure_visualisation()
 			.attr("xlink:href", "images/template_button.png")
 			.on("click", function(d,i)
 			{
-				growth_visualisation();
+				growthVisualisation();
 			})	
 			
 		var graph = await formStructure(structureData["tree"]);
@@ -157,13 +732,13 @@ async function structure_visualisation()
 
 }
 
-// Wipe and start growth view
-function growth_visualisation()
+// Clears the screen using wipeScreen() and creates the bar-chart and line-graph.
+function growthVisualisation()
 {	
-	wipe_screen(function()
+	wipeScreen(function()
 	{
 		// Growth analysis as callback
-		change_title(titleLeftX, "Growth analysis of: " + repositoryData.name);
+		changeTitle(titleLeftX, "Growth analysis of: " + repositoryData.name);
 		
 		var switchButton = parentSvg.append('svg:image')
 			.classed("switchButton", true)
@@ -175,7 +750,7 @@ function growth_visualisation()
 			.on("click", function(d,i)
 			{
 				slider.value = 100;
-				structure_visualisation();
+				structureVisualisation();
 			})	
 		
 		var topPadding = 30;
@@ -367,543 +942,8 @@ function growth_visualisation()
 	});
 }
 
-function addCommitDescript()
-{
-	var commitDescript = parentSvg.append('text');
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 9)
-			.style("fill", "green")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "13px")
-			.attr("text-decoration", "underline")
-			.text("Amount of commits per week:");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 11)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("This bar chart shows the total amount of commits");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 12)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("per week, from the past year.");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 14)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("Hovering over a bar will show the amount and date.");
-}
-
-function addCodeDescript()
-{
-	var commitDescript = parentSvg.append('text');
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 29)
-			.style("fill", "green")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "13px")
-			.attr("text-decoration", "underline")
-			.text("CodeFrequency over time");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 31)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("This line-graph shows how many lines of code--");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 32)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("--were removed/added over time.");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 34)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("Green represents addition.");
-		commitDescript
-			.append("tspan")
-			.attr('x', (svgWidth / 50) * 0.5) 
-			.attr('y', (svgHeight / 50) * 35)
-			.style("fill", "black")
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "11px")
-			.attr("font-style", "italic")
-			.text("Red represents removal.");
-}
-
-// Triggered by clicking `search` button, fetches GH API data, sends it to #search_results()
-function search_repository()
-{
-	var query = document.getElementById('searchQuery').value;
-	if (!query)
-	{
-		// Invalid search query
-		console.log("Non-valid search query");
-		return;
-	}
-	else
-	{	
-		// Get results
-		fetch('https://api.github.com/search/repositories?q=' + query + '&sort=name&order=desc').then(r => r.json()).then(j => search_results(j.items, query));
-	}	
-}
-
-// Checks if valid data, returns ratelimit if not valid. Shortens amount of results to a maximum of 10.
-// Changes title accordingly and shifts away image.
-function search_results(data_results, query)
-{	
-	// Ratelimit/error
-	if(!data_results)
-	{
-		wipe_screen(function()
-		{
-			change_title(titleStandardX, "Hit the Github API ratelimit!");
-			shift_image_in();
-		});
-		return;
-	}
-	// Too many results
-	if(data_results.length > max_results)
-	{
-		data_results = data_results.slice(0, max_results);
-	}	
-	
-	wipe_screen(function()
-	{
-		// Shift&Change main components
-		change_title(titleLeftX, "Results for: \"" + query + "\"");
-		shift_image_out();
-		// Add&Update buttons and results.
-		add_results(data_results);
-	});
-}
-
-// Add/Update search results
-function add_results(data_results)
-{
-	// Add results
-	var results = parentSvg.selectAll(".resultText")
-		.data(data_results);
-	results.enter()
-		.append("text")
-		.attr("x",  10)
-		.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 75})
-		.classed("resultText", true);
-	// Remove previous textual descriptions
-	results.selectAll("tspan").remove();
-	// Textual descriptions
-	results.append("tspan").text(function(d, i)
-	{
-			return (i+1) + ". ";
-		});
-	results.append("tspan").style("fill", "green").text(function(d, i)
-	{
-			return d.owner.login + "/";
-		});
-	results.append("tspan").style("fill", "black").text(function(d, i)
-	{
-			return d.name;
-		});	
-	results.append("tspan").style("fill", "black").text(function(d, i)
-	{
-		return (d.size/1000) + "MB";
-	}).attr("x", 350);
-	results.append("tspan").style("fill", "black").text(function(d, i)
-	{
-		return d.created_at;
-	}).attr("x", 450);
-	// Remove excess results based on data
-	results.exit().remove();
-	
-	// Add buttons
-	var resultButtons = parentSvg.selectAll(".resultButton")
-		.data(data_results);
-	resultButtons
-		.enter()
-		.append('svg:image')
-			.classed("resultButton", true)
-			.attr("x", (svgWidth / 10) * 8)
-			.attr("y", function(d, i) {return (i * ((svgHeight - 75) / 10)) + 52})
-			.attr("width", imageSize / 7.5)
-			.attr("height", imageSize / 7.5)
-			.attr("xlink:href", "images/go_icon.png")
-			.on("click", function(d,i)
-			{
-				repositoryData = d;
-				setData();
-			})	
-			
-	// Remove excess buttons based on data
-	resultButtons.exit().remove();
-	
-	// Fade results in neatly
-	results
-	.style('opacity', 0)
-	.transition()
-		.duration(function(d,i){return i * 150})
-		.style('opacity', 1);
-	resultButtons
-	.style('opacity', 0)
-	.transition()
-		.duration(function(d,i){return i * 150})
-		.style('opacity', 1);
-	
-}
-
-// Wipe the entire screen and initialize base components. (Title/Image)
-function wipe_screen(callback)
-{
-	codeFlowerBox = null;
-	
-	parentSvg.selectAll("*")
-		.transition()
-			.duration(500)
-			.style('opacity', 0)	
-			.duration(500)
-			.remove();
-			
-	svgTitle = parentSvg.append('text')
-		.attr('x', svgWidth / 2.8)
-		.attr('y', svgHeight / 15)
-		.attr("font-family", "sans-serif")
-		.attr("font-size", "25px")
-		.attr("text-decoration", "underline")
-		.text("");
-		
-	svgSubText = parentSvg.append('text')
-		.attr('x', (svgWidth / 50) * 35)
-		.attr('y', (svgHeight / 15) * 14)
-		.attr("font-family", "sans-serif")
-		.attr("font-size", "25px")
-		.attr("text-decoration", "underline")
-		.text("");
-		
-	initImage = parentSvg.append('svg:image')
-		.classed("init_image", true)
-		.style('opacity', 0)
-		.attr({
-			'xlink:href': 'images/page_icon.png',  // can also add svg file here
-			x: svgWidth / 2 - imageSize/2,
-			y: svgHeight / 2 - imageSize/2,
-			width: imageSize,
-			height: imageSize
-		});
-	callback();
-}
-
-// Control (base) components
-function change_title(x, text)
-{
-	svgTitle
-		.transition()
-			.duration(500)
-			.attr('x', x)
-			.text(text)
-			.style('opacity', 1);
-}
-
-// Control (base) components
-function change_subText(text)
-{
-	svgSubText
-		.transition()
-			.duration(500)
-			.attr('x', (svgWidth / 50) * 35)
-			.attr('y', (svgHeight / 15) * 14)
-			.text(text)
-			.style('opacity', 1);
-}
-
-function shift_image_out()
-{
-		parentSvg.selectAll(".init_image").transition()
-			.duration(500)
-			.style('opacity', 0)
-			.attr('x', (svgWidth / 80) * 70);
-}
-
-function shift_image_in()
-{
-	parentSvg.selectAll(".init_image").transition()
-		.duration(500)
-		.style('opacity', 1)
-		.attr('x', (svgWidth / 2 - imageSize/2));
-}
-
-async function setData()
-{
-	// Set weekly commit data from last year
-    const commitResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/participation');
-    const commitJson = await commitResponse.json();
-    commitData = commitJson.all;
-	
-	commitDataSize = 52;
-	var commitDataStart = 0;
-	var commitDataEnd = true;
-	commitData.every(function(element, index) 
-	{
-		if (element == 0 ){ commitDataStart += 1; }
-		if (element != 0) return false
-		else return true
-	});
-	commitData = commitData.splice(commitDataStart, commitData.length);
-	commitDataSize -= commitDataStart;
-	
-	while(commitDataEnd)
-	{
-		if(commitData[commitData.length - 1] == 0)
-		{
-			commitData = commitData.splice(0, commitData.length - 1);
-			commitDataSize -= 1;
-		}
-		else
-		{
-			commitDataEnd = false;
-		}
-	}
-
-	// Set codeFrequencyData
-	const codeFrequencyResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/stats/code_frequency');
-    const codeFrequencyJson = await codeFrequencyResponse.json();
-    codeFrequencyData = codeFrequencyJson;
-	
-	
-	// Set structureData
-	const commitHistoryResponse = await fetch('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name +'/commits');
-	const commitHistoryJson = await commitHistoryResponse.json();
-	commitHistory = commitHistoryJson;
-	
-	const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[0]["sha"] + '?recursive=1');
-	const structureJson = await structureResponse.json();
-	structureData = structureJson;
-	
-	
-	growth_visualisation();
-}
-
-async function formStructure (structureJson)
-{
-	var nodeCount = structureJson.length + 1;
-	var graph = {
-		nodes: 0,
-		links: []};
-
-	var fileCount = 1;
-	
-	graph.nodes = d3.range(structureJson.length + 1).map(Object);
-
-	graph.links.push({source:  0, target:  0, id: 0 ,type: "root", name: "root"});
-	graph.nodes[0]["type"] = "root";
-	graph.nodes[0]["name"] = "root";
-	
-
-	
-	structureJson.forEach(function(entry)
-	{
-		//console.log(entry);
-		var name = entry.path;
-		if(!entry.path.includes("/"))
-		{
-			// Is a folder
-			if(entry.type == "blob")
-			{
-				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: getFileType(name), name: entry.path});
-				graph.nodes[fileCount]["type"] = getFileType(name);
-				graph.nodes[fileCount]["name"] = getFileName(name);
-			}
-			// Is a file
-			else
-			{
-				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "folder", name: entry.path});
-				graph.nodes[fileCount]["type"] = "folder";
-				graph.nodes[fileCount]["name"] = getFileName(name);
-			}
-		}
-		else
-		{
-			// Check for last '/'
-			var cutOffPoint = 0;
-			for (var x = 0, y = entry.path.length; x < y; x++)
-			{
-				if(entry.path.charAt(x) == "/")
-				{
-					cutOffPoint = x;
-				}
-			}
-			// Get name of folder it's ment to be placed in
-			var path = entry.path.slice(0, cutOffPoint);
-			var type = entry.type;
-			// Check all links for their path
-			graph.links.forEach(function(entry)
-			{
-				if(entry.name == path)
-				{
-					// Is a file
-					if(type == "blob")
-					{
-						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: getFileType(name), name: name});
-						graph.nodes[fileCount]["type"] = getFileType(name);
-						graph.nodes[fileCount]["name"] = getFileName(name);
-					}
-					// Is a folder
-					else
-					{
-						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: "folder", name: name});
-						graph.nodes[fileCount]["type"] = "folder";
-						graph.nodes[fileCount]["name"] = getFileName(name);
-					}
-				}
-			});
-			
-		}
-		fileCount += 1;
-		
-	});
-	
-	
-	return graph;
-}
-
-function getFileType (name)
-{
-	var cutOffPoint = 0;
-	for (var x = 0, y = name.length; x < y; x++)
-	{
-		if(name.charAt(x) == ".")
-		{
-			cutOffPoint = x;
-		}
-	}
-	var type = name.slice(cutOffPoint, name.length);
-	return type;
-}
-
-function getFileName (name)
-{
-	var cutOffPoint = 0;
-	for (var x = 0, y = name.length; x < y; x++)
-	{
-		if(name.charAt(x) == "/")
-		{
-			cutOffPoint = x + 1;
-		}
-	}
-	var result = name.slice(cutOffPoint, name.length);
-	return result;
-}
-
-function getTopValue(arr, prop) 
-{
-	// clone before sorting, to preserve the original array
-	var clone = arr.slice(0); 
-
-	// sort descending
-	clone.sort(function(x, y) {
-		if (x[prop] == y[prop]) return 0;
-		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
-		else return -1;
-	});
-	var maxValue = clone.slice(0, 1);
-	return maxValue[0][prop];
-}
-
-function getBotValue(arr, prop) 
-{
-	// clone before sorting, to preserve the original array
-	var clone = arr.slice(0); 
-
-	// sort descending
-	clone.sort(function(y, x) {
-		if (x[prop] == y[prop]) return 0;
-		else if (parseInt(x[prop]) < parseInt(y[prop])) return 1;
-		else return -1;
-	});
-	var minValue = clone.slice(0, 1);
-	return minValue[0][prop];
-}
-
-d3.legend = function(g) 
-{
-	g.each(function() {
-    var g= d3.select(this),
-		items = {},
-        svg = d3.select(g.property("nearestViewportElement")),
-        legendPadding = g.attr("data-style-padding") || 5,
-        lb = g.selectAll(".legend-box").data([true]),
-        li = g.selectAll(".legend-items").data([true])
-
-    lb.enter().append("rect").classed("legend-box",true)
-    li.enter().append("g").classed("legend-items",true)
-
-    svg.selectAll("[data-legend]").each(function() 
-	{
-        var self = d3.select(this)
-        items[self.attr("data-legend")] = 
-		{
-			pos : self.attr("data-legend-pos") || this.getBBox().y,
-			color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke") 
-        }
-	})
-
-    items = d3.entries(items).sort(function(a,b) { return a.value.pos-b.value.pos})
-
-    
-    li.selectAll("text")
-        .data(items,function(d) { return d.key})
-        .call(function(d) { d.enter().append("text")})
-        .call(function(d) { d.exit().remove()})
-        .attr("y",function(d,i) { return i+"em"})
-        .attr("x","1em")
-        .text(function(d) { ;return d.key})
-    
-    li.selectAll("circle")
-        .data(items,function(d) { return d.key})
-        .call(function(d) { d.enter().append("circle")})
-        .call(function(d) { d.exit().remove()})
-        .attr("cy",function(d,i) { return i-0.25+"em"})
-        .attr("cx",0)
-        .attr("r","0.4em")
-        .style("fill",function(d) { return d.value.color})  
-    
-    // Reposition and resize the box
-    var lbbox = li[0][0].getBBox()  
-    lb.attr("x",(lbbox.x-legendPadding))
-        .attr("y",(lbbox.y-legendPadding))
-        .attr("height",(lbbox.height+2*legendPadding))
-        .attr("width",(lbbox.width+2*legendPadding))
-  })
-  return g
-}
-
-// Slider control
-window.onload = function () 
+// Links the slider from index.html to the .js file and makes sure it only works while the user is looking at the force-directed graph.
+window.onload = function  initializeSlider() 
 {
     slider = document.getElementById("slider");
 	slider.value = 100;
@@ -917,7 +957,7 @@ window.onload = function ()
 			return;
 		}
 		var commitPos = Math.floor(commitHistory.length - (sliderValue / 100 * commitHistory.length));
-		change_subText(commitHistory[commitPos].commit.author.date);
+		changeSubText(commitHistory[commitPos].commit.author.date);
 		sliderValue = slider.value;
 		
 	}
@@ -933,6 +973,6 @@ window.onload = function ()
 		const structureResponse = await fetch ('https://api.github.com/repos/' + repositoryData.owner.login + '/' + repositoryData.name + '/git/trees/' + commitHistory[commitPos]["sha"] + '?recursive=1');
 		const structureJson = await structureResponse.json();
 		structureData = structureJson;
-		structure_visualisation();
+		structureVisualisation();
 	}
 };
