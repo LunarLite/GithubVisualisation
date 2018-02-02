@@ -37,6 +37,7 @@ var codeFrequencyData;
 var structureData;
 var commitHistory;
 var structureRoot;
+var maxNodeSize;
 // Colour scheme
 var color = d3.scale.category20()
 // Slider variables
@@ -540,6 +541,8 @@ async function setData()
 //Makes sure that the structure of the force-directed graph is properly built and contains all neccesary data.
 async function formStructure(structureJson)
 {
+	maxNodeSize = 0;
+	
 	var nodeCount = structureJson.length + 1;
 	var graph = {
 		nodes: 0,
@@ -552,28 +555,34 @@ async function formStructure(structureJson)
 	graph.links.push({source:  0, target:  0, id: 0 ,type: "root", name: "root"});
 	graph.nodes[0]["type"] = "root";
 	graph.nodes[0]["name"] = "root";
-	
+	graph.nodes[0]["size"] = 0;
 
 	
 	structureJson.forEach(function(entry)
 	{
 		//console.log(entry);
 		var name = entry.path;
+		var nodeSize = entry.size;
+		
+		if (nodeSize > maxNodeSize){maxNodeSize = nodeSize;}
+		
 		if(!entry.path.includes("/"))
 		{
-			// Is a folder
+			// Is a file
 			if(entry.type == "blob")
 			{
 				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: getFileType(name), name: entry.path});
 				graph.nodes[fileCount]["type"] = getFileType(name);
 				graph.nodes[fileCount]["name"] = getFileName(name);
+				graph.nodes[fileCount]["size"] = nodeSize;
 			}
-			// Is a file
+			// Is a folder
 			else
 			{
 				graph.links.push({source:  0, target:  fileCount, id: fileCount , type: "folder", name: entry.path});
 				graph.nodes[fileCount]["type"] = "folder";
 				graph.nodes[fileCount]["name"] = getFileName(name);
+				graph.nodes[fileCount]["size"] = 0;
 			}
 		}
 		else
@@ -601,6 +610,7 @@ async function formStructure(structureJson)
 						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: getFileType(name), name: name});
 						graph.nodes[fileCount]["type"] = getFileType(name);
 						graph.nodes[fileCount]["name"] = getFileName(name);
+						graph.nodes[fileCount]["size"] = nodeSize;
 					}
 					// Is a folder
 					else
@@ -608,6 +618,7 @@ async function formStructure(structureJson)
 						graph.links.push({source:  entry.target, target:  fileCount, id: fileCount , type: "folder", name: name});
 						graph.nodes[fileCount]["type"] = "folder";
 						graph.nodes[fileCount]["name"] = getFileName(name);
+						graph.nodes[fileCount]["size"] = 0;
 					}
 				}
 			});
@@ -693,7 +704,7 @@ async function structureVisualisation()
 		   
 	   var node = g.append("circle")
 			.attr("class", "node")
-			.attr("r", 4.5)
+			.attr("r", function(d) {return 4.5 + (4.5 * (d.size / maxNodeSize) * 2);})
 			.attr('fill', function(d) {return color(d.type);})
 			.attr("data-legend",function(d) { return d.type})
 			.call(force.drag);
@@ -701,7 +712,14 @@ async function structureVisualisation()
 		   
 		var nodeText = g.append("text")
 			.attr("class", "nodeText")
-			.text(function(d){return d.name})
+			.text(function(d)
+			{
+				if (d.size > 0)
+				{
+					return d.name + ", size: " + (d.size / 1000).toFixed(2) + "KB";
+				}
+				return d.name;
+			})
 			.attr("pointer-events", "none");
 			
 		nodeText.style("opacity", 0.1);
