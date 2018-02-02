@@ -5,7 +5,7 @@
 This visualisation illustrated several interesting statistics concerning github repositories, 
 aiming to make the current (rate of) growth visible.
 
-[screen shot]
+![search results](https://github.com/LunarLite/GithubVisualisation/blob/master/doc/Screen_application.png?raw=true?raw=true)
 
 ## Technical degisn - Code
 
