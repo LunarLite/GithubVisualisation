@@ -16,22 +16,31 @@
 	</head>
 
 	<body>
-		<!--Search section-->
-		<div class="search-container" width="960">
-			<input id="searchQuery" type="text" placeholder="Search for a repository" name="search">
-			<button type="submit" id="searchButton" onclick="searchRepository();">Search Repositories</button>
-		</div>
-		
-		<!--Visualisation section -->
-		<div>
-			<script language="javascript">
-				initVisualisation();
-			</script>
-		</div>
-		
-		<!--Slider section-->
-		<div class="slidecontainer" width="960">
-			<input type="range" min="1" max="100" value="50" class="slider" id="slider">
+		<!--Master container-->
+		<div class="master-container">
+			<!--Search section-->
+			<div class="sub-container" width="960" align="center">
+					Github Visualisation - 
+					<input id="searchQuery" type="text" placeholder="Search for a repository" name="search">
+					<button type="submit" id="searchButton" onclick="searchRepository();">Search Repositories</button>
+			</div>
+			
+			<!--Visualisation section -->
+			<div id="svg-container" class="svg-container">
+				<script language="javascript">
+					initVisualisation();
+				</script>
+			</div>
+			
+			<!--Slider section-->
+			<div class="sub-container" width="960">
+				<input type="range" min="1" max="100" value="50" class="slider" id="slider">
+			</div>
+			
+			<!--Footer section-->
+			<div class="footer-container" width="960">
+				Made by Mick Tozer © 2018.
+			</div>
 		</div>
 	</body>
 </html>

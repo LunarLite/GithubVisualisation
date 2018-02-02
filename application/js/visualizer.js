@@ -310,7 +310,7 @@ function addCodeDescript()
 function initVisualisation()
 {
 	// Setup the base svg
-	parentSvg = d3.select('body').append('svg')
+	parentSvg = d3.select('body').select('#svg-container').append('svg')
 		.attr('width', svgWidth)
 		.attr('height', svgHeight)
 		.classed("parentSvg", true);

@@ -1,8 +1,3 @@
-.parentSvg{
-	border: 3px dotted;
-	border-color: blueviolet;
-}
-
 input[type=text] {
     width: 200px;	
 	padding: 6px;
@@ -10,13 +5,30 @@ input[type=text] {
 	font-size: 17px;
 }
 
-.search-container{
-	border: 3px dotted;
-	border-color: violet;
+.master-container{
+	border: 1px solid;
+	border-color: black;
 	width: 960px;
 }
 
-.search-container button {
+.svg-container{
+	font: 10px sans-serif;
+}
+
+.sub-container{
+	padding: 6px;
+	width: 948px;
+	background-color: #ccccff;
+	font: 25px sans-serif;
+}
+
+.footer-container{
+	background-color: #ccccff;
+	font: 9px sans-serif;
+	text-align: right;
+}
+
+.sub-container button {
   padding: 6px;
   margin-top: 8px;
   margin-right: 16px;
@@ -26,7 +38,7 @@ input[type=text] {
   cursor: pointer;
 }
 
-.search-container button:hover {
+.sub-container button:hover {
   background: #ccc;
 }
 
@@ -45,10 +57,6 @@ input[type=text] {
 
 .node {
   stroke: #000;
-}
-
-body {
-  font: 10px sans-serif;
 }
 
 .axis path,
@@ -80,12 +88,6 @@ body {
 .node text {
   pointer-events: none;
   font: 10px sans-serif;
-}
-
-.slidecontainer {
-    width: 960px;
-	border: 3px dotted;
-	border-color: violet;
 }
 
 .slider {
