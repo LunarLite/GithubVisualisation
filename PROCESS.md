@@ -63,6 +63,13 @@ __Day 1:__
   * (Try the following repository: "discord.net")  
   
 __Day 2:__  
+* Changed codeflower opacity on text and circle
+  * When hovering over with the mouse, circles no longer get a higher opacity value
+  * Text belonging to the hovered-over node becomes more visisble
+* Decided on above changes because switching between opacity on "all" objects caused stuttering in the visualisation as it was applied every single tick.
 __Day 3:__  
+Sick.
 __Day 4:__  
+Sick.
 __Day 5:__  
+Sick.
